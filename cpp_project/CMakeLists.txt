@@ -1,0 +1,7 @@
+set(OpenCV_DIR "../OCV_install")
+cmake_minimum_required(VERSION 2.8)
+project( FYDewrapper)
+find_package( OpenCV REQUIRED )
+include_directories( ${OpenCV_INCLUDE_DIRS} )
+add_executable( dewrapper dewrapper.cpp )
+target_link_libraries( dewrapper ${OpenCV_LIBS} )
