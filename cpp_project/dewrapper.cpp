@@ -1,4 +1,4 @@
-#include "opencv2/ccalib/omnidir.hpp"
+﻿#include "opencv2/ccalib/omnidir.hpp"
 #include "opencv2/core.hpp"
 #include "opencv2/imgproc.hpp"
 #include "opencv2/calib3d.hpp"
@@ -9,14 +9,31 @@
 #include <time.h>
 #include <cstdarg>
 
+const bool DETECT_CHESS = false;
+const bool PUT_CIRCLES = false;
+const bool FAST_METHOD = true;
+const double PI = 3.1416;
+
+int px_counter = 0;
+
 using namespace cv;
 using namespace std;
 
+Point projectWorldToFisheye(Mat worldPoint, Size fisheyeSize);
+Mat projectFisheyeToWorld(Point pixel);
+Point2f projectWorldToPinhole(Mat cameraCoords, int width);
+
+//  Trackbar parameters
 int yawTrack = 90;
 int yawTrack_max = 180;
 int pitchTrack = 90;
 int pitchTrack_max = 180;
 
+//double pinholeFocus = 1080 / (2 * tan(90 / 2));  
+// Global values to read trackbar values
+Point globalPixel(0, 0);
+Point globalReproj(0, 0);
+//Mat globalCamCoords = Mat(1, 3, CV_32F, float(0));
 
 static void cropUglyScreenshots(const vector<string>& list)
 {
@@ -31,28 +48,158 @@ static void cropUglyScreenshots(const vector<string>& list)
     }
 }
 
-static void on_trackbar(int, void*)
+static void on_trackbar(int,  void*)
 {
-    cout << yawTrack <<  "  ";
-    cout << pitchTrack << endl;
+    cout << "Yaw&pitch: " << yawTrack << " " << pitchTrack << endl;
+    
 }
 
-Point calculateFrameProjection(Vec3d worldPoint, Size fisheyeSize)
+Point projectWorldToFisheye(Mat worldPoint, Size fisheyeSize)
 {
-    Point projectionPont(fisheyeSize.width/2, fisheyeSize.height/2) ;       //  initial value set to the image angle
-    if (worldPoint[0] == 0) worldPoint[0] += 0.0001;
-    if (worldPoint[1] == 0) worldPoint[1] += 0.0001;
-    if (worldPoint[2] == 0) worldPoint[2] += 0.0001;
+    float wx = worldPoint.at<float>(0);
+    float wy = worldPoint.at<float>(1);
+    float wz = worldPoint.at<float>(2);
+    //  sqrt destroys signs so I remember them here
+    int8_t xSign = 1, ySign = 1;
+    if (wx == 0) wx += 0.0001;
+    else if (wx < 0) xSign = -1;
+    if (wy == 0) wy += 0.0001;
+    else if (wy < 0) ySign = -1;
+    if (wz == 0) wz += 0.0001;
+    //  fisheye focus
+    double focus = fisheyeSize.width / PI;    
+    Point projectionPoint(fisheyeSize.width/2, fisheyeSize.height/2) ;       //  initial value set to the image angle
+    //  calculate the point location on fisheye image in central coordinates
+    projectionPoint.x = xSign * focus * atan(sqrt(wx * wx + wy * wy) / wz)
+                                       / sqrt( (wy * wy) / (wx * wx) + 1);
+    projectionPoint.y = ySign * focus * atan(sqrt(wx * wx + wy * wy) / wz)
+                                       / sqrt( (wx * wx) / (wy * wy) + 1);
+    //  convert to angle coordinates
+    projectionPoint.x =  projectionPoint.x + fisheyeSize.width / 2;
+    projectionPoint.y = -projectionPoint.y + fisheyeSize.height / 2;
 
+    return projectionPoint;
+}
 
-    double focus = fisheyeSize.width / 3.14159;
+Point2f projectWorldToPinhole(Mat cameraCoords, Size imgSize)
+{
+    double fov = 90;           // assuming equal FOV on x & y
+    double fovRad = fov * PI / 180;
+    double pinholeFocus = imgSize.width / (2 * tan(fovRad / 2));
     
-    projectionPont.x = focus * atan(sqrt(worldPoint[0] * worldPoint[0] + worldPoint[1] * worldPoint[1]) / worldPoint[2])
-        / sqrt( (worldPoint[1] * worldPoint[1]) / (worldPoint[0] * worldPoint[0]) + 1);
-    projectionPont.y = focus * atan(sqrt(worldPoint[0] * worldPoint[0] + worldPoint[1] * worldPoint[1]) / worldPoint[2])
-        / sqrt( (worldPoint[0] * worldPoint[0]) / (worldPoint[1] * worldPoint[1]) + 1);
+    float cx = cameraCoords.at<float>(0);
+    float cy = cameraCoords.at<float>(1);
+    float cz = cameraCoords.at<float>(2);
+    /*
+    px_counter++;
+    if (px_counter == 100) {
+        px_counter = 0;
+        cout << cx/cz << " | ";
+    }
+    */
+    Point2f pinholePoint;
+    pinholePoint.x = pinholeFocus * cx / cz;
+    pinholePoint.y = pinholeFocus * cy / cz;
 
-    return projectionPont;
+    return pinholePoint;
+}
+
+Mat projectPinholeToWorld(Point pixel, Size imgSize, int fov)
+{
+    pixel.x =  pixel.x - imgSize.width / 2;         // converting angle coordinates to the center ones
+    pixel.y = -pixel.y + imgSize.height / 2;
+    
+    float cz = 2;                                   // doesnt really affect much
+    double fovRad = fov * PI / 180;                 // assuming equal FOV on x & y
+    double pinholeFocus = imgSize.width / (2 * tan(fovRad / 2));
+    
+    Mat cameraCoords(1, 3, CV_32F, float(0));
+    cameraCoords.at<float>(0) = pixel.x * cz / pinholeFocus;
+    cameraCoords.at<float>(1) = pixel.y * cz / pinholeFocus;
+    cameraCoords.at<float>(2) = cz;
+
+    double pitch = -(pitchTrack - 90) * PI / 180;
+    double yaw = (yawTrack - 90) * PI / 180;
+    double roll = 0;
+
+    Mat rotZ(cv::Matx33f(1, 0, 0,
+                        0, cos(yaw), sin(yaw),
+                        0, -sin(yaw), cos(yaw)));       // roll?
+    Mat rotX(cv::Matx33f(cos(pitch), 0, -sin(pitch),
+                        0, 1, 0,                        // pitch
+                        sin(pitch), 0, cos(pitch)));
+    Mat rotY(cv::Matx33f(cos(roll), -sin(roll), 0,      // yaw?
+                         sin(roll), cos(roll), 0,
+                         0, 0, 1)               );
+    cameraCoords = cameraCoords * rotY * rotX * rotZ;
+
+    return cameraCoords;
+}
+
+Mat projectFisheyeToWorld(Point pixel)
+{
+    cv::Mat direction(1, 3, CV_32F, float(0));
+    double a[] = {350.8434, -0.0015, 2.1981*pow(10, -6), -3.154*pow(10, -9)};       // Sarcamuzza coeffs from MATLAB
+    double scale = 0.0222;         // lambda scale factor
+    double rho = norm(pixel);      // sqrt xy
+    
+    direction.at<float>(0) = scale * pixel.x;
+    direction.at<float>(1) = scale * pixel.y;
+    direction.at<float>(2) = scale * (a[0] + a[1]*pow(rho, 2) + a[2]*pow(rho, 3) + a[3]*pow(rho, 4));
+
+    double yaw = 0; //(yawTrack - 90) * PI / 180;
+    double pitch = 0; // (pitchTrack - 90)* PI / 180;
+    
+    cv::Mat rotZ(cv::Matx33f(1, 0, 0,
+                            0, cos(pitch), sin(pitch),
+                            0, -sin(pitch), cos(pitch)));   
+    cv::Mat rotX(cv::Matx33f(cos(yaw), 0, -sin(yaw),
+                            0, 1, 0,
+                            sin(yaw), 0, cos(yaw)));   
+    direction = direction * rotZ  * rotX;
+
+    return direction;
+}
+
+void fillMaps(Mat& map1, Mat& map2, Size origSize, Size newSize, int fov, vector<Point>& frameBorder)
+{
+    for (int i = 0; i < newSize.width; i++)
+    {
+        for (int j = 0; j < newSize.height; j++)
+        {
+            Point distPoint = projectWorldToFisheye(projectPinholeToWorld(
+                                                    Point(i, j), origSize, fov),
+                                                    newSize);
+            if (distPoint.x > origSize.width  - 1 || distPoint.x < 0 ||
+                distPoint.y > origSize.height - 1 || distPoint.y < 0)
+            {
+                continue;
+            }
+
+            // save distorted edge of the frame 
+            if (((j == 0 || j == newSize.height - 1) && i % 100 == 0) ||
+                ((i == 0 || i == newSize.width - 1) && j % 100 == 0))
+            {
+                frameBorder.push_back(Point(distPoint.y, distPoint.x));
+            }
+
+            map1.at<float>(i, j) = distPoint.y;
+            map2.at<float>(i, j) = distPoint.x;
+        }
+    }
+}
+
+// beta = brightness, alpha = contrast
+void changeContrastAndBrightness(Mat& image, double alpha = 1, int beta = 0)
+{
+    for (int y = 0; y < image.rows; y++) {
+        for (int x = 0; x < image.cols; x++) {
+            for (int c = 0; c < image.channels(); c++) {
+                image.at<Vec3b>(y, x)[c] =
+                    saturate_cast<uchar>(alpha * image.at<Vec3b>(y, x)[c] + beta);
+            }
+        }
+    }
 }
 
 void ShowManyImages(string title, int nArgs, ...) {
@@ -84,11 +231,11 @@ void ShowManyImages(string title, int nArgs, ...) {
     // from number of arguments
     else if (nArgs == 1) {
         w = h = 1;
-        size = 300;
+        size = 540;
     }
     else if (nArgs == 2) {
         w = 2; h = 1;
-        size = 300;
+        size = 540;
     }
     else if (nArgs == 3 || nArgs == 4) {
         w = 2; h = 2;
@@ -146,114 +293,11 @@ void ShowManyImages(string title, int nArgs, ...) {
     // Create a new window, and show the Single Big Image
     //namedWindow(title, 1);
     imshow(title, DispImage);
-    waitKey();
+    //waitKey();
+    //waitKey(15);
     // End the number of arguments
     va_end(args);
 }
-
-static void calcChessboardCorners(const Size& boardSize, const Size2d& squareSize, Mat& corners, string pattern)
-{
-    // corners has type of CV_64FC3
-    corners.release();
-    int n = boardSize.width * boardSize.height;
-    corners.create(n, 1, CV_64FC3);
-    Vec3d* ptr = corners.ptr<Vec3d>();
-    for (int i = 0; i < boardSize.height; ++i)
-    {
-        for (int j = 0; j < boardSize.width; ++j)
-        {
-            if (pattern == "chessboaard")
-                ptr[i*boardSize.width + j] = Vec3d(double(j * squareSize.width), double(i * squareSize.height), 0.0); //chessboard
-            else
-                ptr[i * boardSize.width + j] = Vec3d(double((2 * j + i % 2) * squareSize.width), double(i * squareSize.height), 0.0);   //circles
-        }
-    }
-}
-
-static bool detecChessboardCorners(const vector<string>& list, vector<string>& list_detected,
-    vector<Mat>& imagePoints, Size boardSize, Size& imageSize)
-{
-    imagePoints.resize(0);
-    list_detected.resize(0);
-    int n_img = (int)list.size();
-    Mat img;
-    //namedWindow("Image View", 1);
-    for (int i = 0; i < n_img; ++i)
-    {
-        cout << list[i] << "... ";
-        Mat points;
-        img = imread(list[i], IMREAD_GRAYSCALE);
-
-       
-        bool found = findChessboardCorners(img, boardSize, points);
-        if (found)
-        {
-            cornerSubPix(img, points, Size(11, 11),         // 11 taken from calibration.cpp
-                Size(-1, -1), TermCriteria(TermCriteria::EPS + TermCriteria::COUNT, 30, 0.0001));
-            if (points.type() != CV_64FC2)
-                points.convertTo(points, CV_64FC2);
-            imagePoints.push_back(points);
-            list_detected.push_back(list[i]);
-
-            points.convertTo(points, CV_32F);       // the function checks for that
-            drawChessboardCorners(img, boardSize, points, found);
-        }
-         //imshow("Image View", img);
-         //char c = (char)waitKey();
-         cout << (found ? "FOUND" : "NO") << endl;
-    }
-    if (!img.empty())
-        imageSize = img.size();
-    if (imagePoints.size() < 3)
-        return false;
-    else
-        return true;
-}
-
-
-static bool detecCircles(const vector<string>& list, vector<string>& list_detected,
-    vector<Mat>& imagePoints, Size boardSize, Size& imageSize)
-{
-    imagePoints.resize(0);
-    list_detected.resize(0);
-    int n_img = (int)list.size();
-    Mat img;
-    namedWindow("Image View", 1);
-    for (int i = 0; i < n_img; ++i)
-    {
-        cout << list[i] << "... ";
-        Mat points;
-        img = imread(list[i], IMREAD_GRAYSCALE); //
-        
-        imshow("Image View", img);
-        char c = (char)waitKey();
-        // tweaking blob detector 
-         SimpleBlobDetector::Params bParams;
-        /* bParams.filterByArea = true;
-         bParams.minArea = 2; bParams.maxArea = 10000;
-         bParams.filterByInertia = true;
-         bParams.minInertiaRatio = 0.01;*/
-         Ptr<SimpleBlobDetector> bDetector = SimpleBlobDetector::create(bParams);
-        //
-        bool found = findCirclesGrid(img, boardSize, points, CALIB_CB_ASYMMETRIC_GRID | CALIB_CB_CLUSTERING, bDetector);
-        if (found)
-        {
-            if (points.type() != CV_64FC2)
-                points.convertTo(points, CV_64FC2);
-            imagePoints.push_back(points);
-            list_detected.push_back(list[i]);
-            //drawChessboardCorners(img, boardSize, points, found);
-        }
-        cout << (found ? "FOUND" : "NOO") << endl;
-    }
-    if (!img.empty())
-        imageSize = img.size();
-    if (imagePoints.size() < 3)
-        return false;
-    else
-        return true;
-}
-
 
 static bool readStringList(const string& filename, vector<string>& l)
 {
@@ -269,112 +313,105 @@ static bool readStringList(const string& filename, vector<string>& l)
         l.push_back((string)*it);
     return true;
 }
+// initialize values for StereoSGBM parameters
+int numDisparities = 8;
+int blockSize = 5;
+int preFilterType = 1;
+int preFilterSize = 1;
+int preFilterCap = 31;
+int minDisparity = 0;
+int textureThreshold = 10;
+int uniquenessRatio = 15;
+int speckleRange = 0;
+int speckleWindowSize = 0;
+int disp12MaxDiff = -1;
+int dispType = CV_16S;
 
-static void saveCameraParams(const string& filename, int flags, const Mat& cameraMatrix,
-    const Mat& distCoeffs, const double xi, const vector<Vec3d>& rvecs, const vector<Vec3d>& tvecs,
-    vector<string> detec_list, const Mat& idx, const double rms, const vector<Mat>& imagePoints)
+// Creating an object of StereoSGBM algorithm
+cv::Ptr<cv::StereoBM> stereo = cv::StereoBM::create();
+
+// Defining callback functions for the trackbars to update parameter values
+
+static void on_trackbar1(int, void*)
 {
-    FileStorage fs(filename, FileStorage::WRITE);
+    stereo->setNumDisparities(numDisparities * 16);
+    numDisparities = numDisparities * 16;
+}
 
-    time_t tt;
-    time(&tt);
-    struct tm* t2 = localtime(&tt);
-    char buf[1024];
-    strftime(buf, sizeof(buf) - 1, "%c", t2);
+static void on_trackbar2(int, void*)
+{
+    stereo->setBlockSize(blockSize * 2 + 5);
+    blockSize = blockSize * 2 + 5;
+}
 
-    fs << "calibration_time" << buf;
+static void on_trackbar3(int, void*)
+{
+    stereo->setPreFilterType(preFilterType);
+}
 
-    if (!rvecs.empty())
-        fs << "nFrames" << (int)rvecs.size();
+static void on_trackbar4(int, void*)
+{
+    stereo->setPreFilterSize(preFilterSize * 2 + 5);
+    preFilterSize = preFilterSize * 2 + 5;
+}
 
-    if (flags != 0)
-    {
-        sprintf(buf, "flags: %s%s%s%s%s%s%s%s%s",
-            flags & omnidir::CALIB_USE_GUESS ? "+use_intrinsic_guess" : "",
-            flags & omnidir::CALIB_FIX_SKEW ? "+fix_skew" : "",
-            flags & omnidir::CALIB_FIX_K1 ? "+fix_k1" : "",
-            flags & omnidir::CALIB_FIX_K2 ? "+fix_k2" : "",
-            flags & omnidir::CALIB_FIX_P1 ? "+fix_p1" : "",
-            flags & omnidir::CALIB_FIX_P2 ? "+fix_p2" : "",
-            flags & omnidir::CALIB_FIX_XI ? "+fix_xi" : "",
-            flags & omnidir::CALIB_FIX_GAMMA ? "+fix_gamma" : "",
-            flags & omnidir::CALIB_FIX_CENTER ? "+fix_center" : "");
-        //cvWriteComment( *fs, buf, 0 );
-    }
+static void on_trackbar5(int, void*)
+{
+    stereo->setPreFilterCap(preFilterCap);
+}
 
-    fs << "flags" << flags;
+static void on_trackbar6(int, void*)
+{
+    stereo->setTextureThreshold(textureThreshold);
+}
 
-    fs << "camera_matrix" << cameraMatrix;
-    fs << "distortion_coefficients" << distCoeffs;
-    fs << "xi" << xi;
+static void on_trackbar7(int, void*)
+{
+    stereo->setUniquenessRatio(uniquenessRatio);
+}
 
-    //cvWriteComment( *fs, "names of images that are acturally used in calibration", 0 );
-    fs << "used_imgs" << "[";
-    for (int i = 0; i < (int)idx.total(); ++i)
-    {
-        fs << detec_list[(int)idx.at<int>(i)];
-    }
-    fs << "]";
+static void on_trackbar8(int, void*)
+{
+    stereo->setSpeckleRange(speckleRange);
+}
 
-    if (!rvecs.empty() && !tvecs.empty())
-    {
-        Mat rvec_tvec((int)rvecs.size(), 6, CV_64F);
-        for (int i = 0; i < (int)rvecs.size(); ++i)
-        {
-            Mat(rvecs[i]).reshape(1, 1).copyTo(rvec_tvec(Rect(0, i, 3, 1)));
-            Mat(tvecs[i]).reshape(1, 1).copyTo(rvec_tvec(Rect(3, i, 3, 1)));
-        }
-        //cvWriteComment( *fs, "a set of 6-tuples (rotation vector + translation vector) for each view", 0 );
-        fs << "extrinsic_parameters" << rvec_tvec;
-    }
+static void on_trackbar9(int, void*)
+{
+    stereo->setSpeckleWindowSize(speckleWindowSize * 2);
+    speckleWindowSize = speckleWindowSize * 2;
+}
 
-    fs << "rms" << rms;
+static void on_trackbar10(int, void*)
+{
+    stereo->setDisp12MaxDiff(disp12MaxDiff);
+}
 
-    if (!imagePoints.empty())
-    {
-        Mat imageMat((int)imagePoints.size(), (int)imagePoints[0].total(), CV_64FC2);
-        for (int i = 0; i < (int)imagePoints.size(); ++i)
-        {
-            Mat r = imageMat.row(i).reshape(2, imageMat.cols);
-            Mat imagei(imagePoints[i]);
-            imagei.copyTo(r);
-        }
-        fs << "image_points" << imageMat;
-    }
+static void on_trackbar11(int, void*)
+{
+    stereo->setMinDisparity(minDisparity);
+}
+
+void on_mouse(int e, int x, int y, int d, void* ptr)
+{
+    Point* p = (Point*)ptr;
+    p->x = x;
+    p->y = y;
 }
 
 int main(int argc, char** argv)
 {
     cv::CommandLineParser parser(argc, argv,
-        "{w||board width}"
-        "{h||board height}"
-        "{sw|1.0|square width}"
-        "{sh|1.0|square height}"
-        "{pt|chessboard|pattern: chessboard \ acircles}"
-        "{o|out_camera_params.xml|output file}"
-        "{fs|false|fix skew}"
-        "{fp|false|fix principal point at the center}"
         "{@input||input file - xml file with a list of the images, created with cpp-example-imagelist_creator tool}"
         "{help||show help}"
     );
-    parser.about("This is a sample for omnidirectional camera calibration. Example command line:\n"
-        "    omni_calibration -w=6 -h=9 -sw=80 -sh=80 imagelist.xml \n");
-    if (parser.has("help") || !parser.has("w") || !parser.has("h"))
+    parser.about("This is a sample for fisheye camera undistortion. Example command line:\n"
+        "    dewrapper imagelist.xml \n");
+    if (parser.has("help"))
     {
         parser.printMessage();
         return 0;
     }
-
-    Size boardSize(parser.get<int>("w"), parser.get<int>("h"));
-    Size2d squareSize(parser.get<double>("sw"), parser.get<double>("sh"));
-    int flags = 0;
-    if (parser.get<bool>("fs"))
-        flags |= omnidir::CALIB_FIX_SKEW;
-    if (parser.get<bool>("fp"))
-        flags |= omnidir::CALIB_FIX_CENTER;
-    const string outputFilename = parser.get<string>("o");
     const string inputFilename = parser.get<string>(0);
-    const string pattern = parser.get<string>("pt");
 
     if (!parser.check())
     {
@@ -390,113 +427,140 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    //  crops images in a list and saves them 
-    //cropUglyScreenshots(image_list);
-    //
-
-    // find corners in images
-    // some images may be failed in automatic corner detection, passed cases are in detec_list
-    cout << "Detecting patterns (" << image_list.size() << ")" << endl;
-    vector<Mat> imagePoints;
-    Size imageSize;
-    if (pattern == "chessboard")
-    {
-        if (!detecChessboardCorners(image_list, detec_list, imagePoints, boardSize, imageSize))
-        {
-            cout << "Not enough corner detected images" << endl;
-            return -1;
-        }
-    }
-    else if (pattern == "acircles")
-    {
-        if (!detecCircles(image_list, detec_list, imagePoints, boardSize, imageSize))    //circles grid modification
-        {
-            cout << "Not enough corner detected images" << endl;
-            return -1;
-        }
-    }
-    else cout << "Wrong pattern name" << endl;
-
-
-    // calculate object coordinates
-    vector<Mat> objectPoints;
-    Mat object;
-    calcChessboardCorners(boardSize, squareSize, object, pattern);
-    for (int i = 0; i < (int)detec_list.size(); ++i)
-        objectPoints.push_back(object);
-
-    // run calibration, some images are discarded in calibration process because they are failed
-    // in initialization. Retained image indexes are in idx variable.
-    Mat K, D, xi, idx;
-    
-    vector<Vec3d> rvecs, tvecs;
-    double _xi, rms;
-    TermCriteria criteria(3, 200, 1e-8);
-    rms = omnidir::calibrate(objectPoints, imagePoints, imageSize, K, xi, D, rvecs, tvecs, flags, criteria, idx);
-    _xi = xi.at<double>(0);
-    cout << "Saving camera params to " << outputFilename << endl;
-    saveCameraParams(outputFilename, flags, K, D, _xi,
-        rvecs, tvecs, detec_list, idx, rms, imagePoints);
-
     int n_img = (int)image_list.size();
     cout << n_img << endl;
 
-    Size new_size = imageSize ;
-    
-    Mat Knew = cv::Mat(cv::Matx33f(imageSize.width / 4, 0, imageSize.width / 2,
-                                    0, imageSize.height / 4, imageSize.height / 2,
-                                    0, 0, 1));
-    
+    // Creating a named window to be linked to the trackbars
+    cv::namedWindow("disparity", cv::WINDOW_NORMAL);
+    cv::namedWindow("disparityy", cv::WINDOW_NORMAL);
+    cv::resizeWindow("disparityy", 600, 600);
 
-    namedWindow("Images", 1);
-    createTrackbar("Yaw", "Images", &yawTrack, yawTrack_max, on_trackbar);
-    createTrackbar("Pitch", "Images", &pitchTrack, pitchTrack_max, on_trackbar);
+    // Creating trackbars to dynamically update the StereoBM parameters
+    cv::createTrackbar("numDisparities", "disparity", &numDisparities, 18, on_trackbar1);
+    cv::createTrackbar("blockSize", "disparity", &blockSize, 50, on_trackbar2);
+    cv::createTrackbar("preFilterType", "disparity", &preFilterType, 1, on_trackbar3);
+    cv::createTrackbar("preFilterSize", "disparity", &preFilterSize, 25, on_trackbar4);
+    cv::createTrackbar("preFilterCap", "disparity", &preFilterCap, 62, on_trackbar5);
+    cv::createTrackbar("textureThreshold", "disparity", &textureThreshold, 100, on_trackbar6);
+    cv::createTrackbar("uniquenessRatio", "disparity", &uniquenessRatio, 100, on_trackbar7);
+    cv::createTrackbar("speckleRange", "disparity", &speckleRange, 100, on_trackbar8);
+    cv::createTrackbar("speckleWindowSize", "disparity", &speckleWindowSize, 25, on_trackbar9);
+    cv::createTrackbar("disp12MaxDiff", "disparity", &disp12MaxDiff, 25, on_trackbar10);
+    cv::createTrackbar("minDisparity", "disparity", &minDisparity, 25, on_trackbar11);
 
-    on_trackbar(yawTrack, 0);
+    Point mouse(0, 0);
+    setMouseCallback("disparityy", on_mouse, &mouse);
 
-    for (int i = 0; i < n_img; ++i)
+    cv::Mat disp, disparity;
+
+    bool depthSwitcher = false;
+    int lastPitch = 0;
+    int lastYaw = 0;
+    int index = 2;
+
+    Size origSize = Size(1080, 1080);       //imread(image_list[0], -1).size();
+    Size newSize = origSize * 1;            // determines the size of the output image
+    int fov = 90;                           // output image fov
+
+    Mat map1(newSize, CV_32FC1, float(0));   // x map
+    Mat map2(newSize, CV_32FC1, float(0));   // y map
+    vector<Point> grid;                   // vectors of grid points
+    vector<Point> gridDist;
+
+    while(true)         //  iterate through images       
     {
-        Mat imageUndistorted;
-        Mat img = imread(image_list[i], -1);
+        Mat img = imread(image_list[index], -1);
+        Mat right = img(Rect(0, 0, 1080, 1080)).clone();
+        Mat left = img(Rect(1070, 0, 1080, 1080)).clone();
+
+        if ((lastPitch != pitchTrack || lastYaw != yawTrack) && FAST_METHOD){
+            gridDist.clear();                                                             // destroy old points
+            fillMaps(map1, map2, origSize, newSize, fov, gridDist);                       // fill new maps with current parameters. 
+            cout << "Maps ready" << endl;
+
+            lastPitch = pitchTrack;                                                       // remember parameters
+            lastYaw = yawTrack;
+        }
+
+        Mat leftImageRemapped(newSize, CV_8UC3, Scalar(0, 0, 0));
+        Mat rightImageRemapped(newSize, CV_8UC3, Scalar(0, 0, 0));
+
+        remap(left, leftImageRemapped, map1, map2, INTER_CUBIC, BORDER_CONSTANT);
+        remap(right, rightImageRemapped, map1, map2, INTER_CUBIC, BORDER_CONSTANT);
         
-        Mat R = cv::Mat::eye(3, 3, CV_32FC1);
-        Mat Mapx, Mapy;
-        Mat P(3, 3, CV_32FC1);
-        P = K;
-        Mat Kn = K;
+        bool textPut = false;
+        // draw grid
+        for each (Point center in gridDist)
+        {
+            string strFov = "FOV: " + to_string(fov);
+            if (!textPut) {
+                Point textOrigin = center - Point(20,20);
+                putText(img, strFov, textOrigin, FONT_HERSHEY_COMPLEX_SMALL, 1, Scalar(255, 255, 255));
+                textPut = true;
+            }
+            circle(img, center, 4, Scalar(115, 25, 10), 3);
+        }
 
-        Size new_size = imageSize * 2;
+        // Converting images to grayscale
+        cv::cvtColor(leftImageRemapped, leftImageRemapped, cv::COLOR_BGR2GRAY);
+        cv::cvtColor(rightImageRemapped, rightImageRemapped, cv::COLOR_BGR2GRAY);
 
-        Mat Knew = cv::Mat(cv::Matx33f(imageSize.width / (yawTrack*2), 0, imageSize.width / yawTrack,
-            0, imageSize.height / (yawTrack*2), imageSize.height / yawTrack,
-            0, 0, 1));
-        //cout << Knew;
+        // Calculating disparith using the StereoBM algorithm
+        stereo->compute(leftImageRemapped, rightImageRemapped, disp);
 
-        double yaw = (yawTrack - 90) * 3.1416 / 180;  //(15 - yawTrack * 15) * 3.1416 / 180;
-        double pitch = -(pitchTrack - 90) * 3.1416 / 180;
-        cv::Mat vecMat = (Mat_<float>(1,3) << 0, 0, 8);
-        cv::Mat rotY(cv::Matx33f(cos(yaw), sin(yaw), 0,
-                                -sin(yaw), cos(yaw), 0,
-                                               0, 0, 1));   // weird up-facing Y
+        // Converting disparity values to CV_32F from CV_16S
+        disp.convertTo(disparity, CV_32F, 1.0);
 
-        cv::Mat rotX(cv::Matx33f(cos(yaw), 0, -sin(yaw),
-                                 0,          1,      0,
-                                 sin(yaw), 0, cos(yaw)   ));   // horizontal x
+        // Scaling down the disparity values and normalizing them 
+        disparity = (disparity / 16.0f - (float)minDisparity) / ((float)numDisparities);
+        // normalize(disp, disp, 0, 255, cv::NORM_MINMAX, CV_8UC1);
 
-        cv::Mat rotZ(cv::Matx33f(1, 0, 0,
-                                 0, cos(pitch), sin(pitch),
-                                 0, -sin(pitch), cos(pitch)));   // 
+        string dispVal = to_string(disparity.at<float>(mouse));
+        putText(disparity, dispVal, Point(30,950), FONT_HERSHEY_COMPLEX_SMALL, 1, Scalar(255, 255, 255));
+        //ShowManyImages("Images", 2, leftImageRemapped, rightImageRemapped);
+        // Displaying the disparity map
+        cv::imshow("disparityy", disparity);
+
+        if (depthSwitcher)
+        {
+            Mat image3D;
+            double focus = 540.0;
+            cv::Matx44d Q = cv::Matx44d(
+                1.0, 0.0, 0.0, 0.0,
+                0.0, -1.0, 0.0, 0.0,
+                0.0, 0.0, focus * 0.05, 0.0,
+                0.0, 0.0, 0.0, 0.1 );
+            reprojectImageTo3D(disparity, image3D, Q);
+            
+            //cout << "WIP" << endl;
+            depthSwitcher = false;
+        }
+
+        char key = (char)waitKey(1);
+        switch (key){
+        case 'r':
+            index += 0;
+            cout << "Reload" << endl;
+            break;
+        case 'q':
+            index--;
+            cout << "Prev image" << endl;
+            break;
+        case 'e':
+            index++;
+            cout << "Next image" << endl;
+            break;
+        case 'd':
+            cout << "calculating depth" << endl;
+            depthSwitcher = true;
+            break;
+        case 'z':
+            exit(0);
+        default: 
+            index +=0;
+            break;
+        }
         
-        cout << vecMat * rotZ * rotX;  // * rotY
-        cout << calculateFrameProjection(vecMat, imageSize) << endl;
-
-        //omnidir::initUndistortRectifyMap(Kn, D, xi, R, P, new_size, CV_32FC1, Mapx, Mapy, cv::omnidir::RECTIFY_CYLINDRICAL);// , Knew, new_size); RECTIFY_PERSPECTIVE
-        //remap(img, imageUndistorted, Mapx, Mapy, INTER_CUBIC);
-        //undistort(img, imageUndistorted, Kn, D);
-        omnidir::undistortImage(img, imageUndistorted, K, D, xi, omnidir::RECTIFY_CYLINDRICAL ); //RECTIFY_PERSPECTIVE  ,Knew, new_size, R 
-        ShowManyImages("Images", 2, img, imageUndistorted);
-        //char c = (char)waitKey();
-
-        if (i == n_img - 1) i = 0;
+        if (index == n_img - 1 || index < 0) index = 0;
     }
 }
