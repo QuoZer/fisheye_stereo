@@ -1,1 +1,1 @@
-.\dewrapper.exe -w=9 -h=6 -pt=chessboard ..\..\datasets\unity_chess\unity_list.xml
+.\build\Release\dewrapper.exe -w=9 -h=6 -pt=chessboard ..\data\unity_chess\unity_list.xml
