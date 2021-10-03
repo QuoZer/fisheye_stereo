@@ -55,141 +55,6 @@ static void on_trackbar(int,  void*)
     
 }
 
-Point projectWorldToFisheye(Mat worldPoint, Size fisheyeSize)
-{
-    float wx = worldPoint.at<float>(0);
-    float wy = worldPoint.at<float>(1);
-    float wz = worldPoint.at<float>(2);
-    //  sqrt destroys signs so I remember them here
-    int8_t xSign = 1, ySign = 1;
-    if (wx == 0) wx += 0.0001;
-    else if (wx < 0) xSign = -1;
-    if (wy == 0) wy += 0.0001;
-    else if (wy < 0) ySign = -1;
-    if (wz == 0) wz += 0.0001;
-    //  fisheye focus
-    double focus = fisheyeSize.width / PI;    
-    Point projectionPoint(fisheyeSize.width/2, fisheyeSize.height/2) ;       //  initial value set to the image angle
-    //  calculate the point location on fisheye image in central coordinates
-    projectionPoint.x = xSign * focus * atan(sqrt(wx * wx + wy * wy) / wz)
-                                       / sqrt( (wy * wy) / (wx * wx) + 1);
-    projectionPoint.y = ySign * focus * atan(sqrt(wx * wx + wy * wy) / wz)
-                                       / sqrt( (wx * wx) / (wy * wy) + 1);
-    //  convert to angle coordinates
-    projectionPoint.x =  projectionPoint.x + fisheyeSize.width / 2;
-    projectionPoint.y = -projectionPoint.y + fisheyeSize.height / 2;
-
-    return projectionPoint;
-}
-
-Point2f projectWorldToPinhole(Mat cameraCoords, Size imgSize)
-{
-    double fov = 90;           // assuming equal FOV on x & y
-    double fovRad = fov * PI / 180;
-    double pinholeFocus = imgSize.width / (2 * tan(fovRad / 2));
-    
-    float cx = cameraCoords.at<float>(0);
-    float cy = cameraCoords.at<float>(1);
-    float cz = cameraCoords.at<float>(2);
-    /*
-    px_counter++;
-    if (px_counter == 100) {
-        px_counter = 0;
-        cout << cx/cz << " | ";
-    }
-    */
-    Point2f pinholePoint;
-    pinholePoint.x = pinholeFocus * cx / cz;
-    pinholePoint.y = pinholeFocus * cy / cz;
-
-    return pinholePoint;
-}
-
-Mat projectPinholeToWorld(Point pixel, Size imgSize, int fov)
-{
-    pixel.x =  pixel.x - imgSize.width / 2;         // converting angle coordinates to the center ones
-    pixel.y = -pixel.y + imgSize.height / 2;
-    
-    float cz = 2;                                   // doesnt really affect much
-    double fovRad = fov * PI / 180;                 // assuming equal FOV on x & y
-    double pinholeFocus = imgSize.width / (2 * tan(fovRad / 2));
-    
-    Mat cameraCoords(1, 3, CV_32F, float(0));
-    cameraCoords.at<float>(0) = pixel.x * cz / pinholeFocus;
-    cameraCoords.at<float>(1) = pixel.y * cz / pinholeFocus;
-    cameraCoords.at<float>(2) = cz;
-
-    double pitch = -(pitchTrack - 90) * PI / 180;
-    double yaw = (yawTrack - 90) * PI / 180;
-    double roll = 0;
-
-    Mat rotZ(cv::Matx33f(1, 0, 0,
-                        0, cos(yaw), sin(yaw),
-                        0, -sin(yaw), cos(yaw)));       // roll?
-    Mat rotX(cv::Matx33f(cos(pitch), 0, -sin(pitch),
-                        0, 1, 0,                        // pitch
-                        sin(pitch), 0, cos(pitch)));
-    Mat rotY(cv::Matx33f(cos(roll), -sin(roll), 0,      // yaw?
-                         sin(roll), cos(roll), 0,
-                         0, 0, 1)               );
-    cameraCoords = cameraCoords * rotY * rotX * rotZ;
-
-    return cameraCoords;
-}
-
-Mat projectFisheyeToWorld(Point pixel)
-{
-    cv::Mat direction(1, 3, CV_32F, float(0));
-    double a[] = {350.8434, -0.0015, 2.1981*pow(10, -6), -3.154*pow(10, -9)};       // Sarcamuzza coeffs from MATLAB
-    double scale = 0.0222;         // lambda scale factor
-    double rho = norm(pixel);      // sqrt xy
-    
-    direction.at<float>(0) = scale * pixel.x;
-    direction.at<float>(1) = scale * pixel.y;
-    direction.at<float>(2) = scale * (a[0] + a[1]*pow(rho, 2) + a[2]*pow(rho, 3) + a[3]*pow(rho, 4));
-
-    double yaw = 0; //(yawTrack - 90) * PI / 180;
-    double pitch = 0; // (pitchTrack - 90)* PI / 180;
-    
-    cv::Mat rotZ(cv::Matx33f(1, 0, 0,
-                            0, cos(pitch), sin(pitch),
-                            0, -sin(pitch), cos(pitch)));   
-    cv::Mat rotX(cv::Matx33f(cos(yaw), 0, -sin(yaw),
-                            0, 1, 0,
-                            sin(yaw), 0, cos(yaw)));   
-    direction = direction * rotZ  * rotX;
-
-    return direction;
-}
-
-void fillMaps(Mat& map1, Mat& map2, Size origSize, Size newSize, int fov, vector<Point>& frameBorder)
-{
-    for (int i = 0; i < newSize.width; i++)
-    {
-        for (int j = 0; j < newSize.height; j++)
-        {
-            Point distPoint = projectWorldToFisheye(projectPinholeToWorld(
-                                                    Point(i, j), origSize, fov),
-                                                    newSize);
-            if (distPoint.x > origSize.width  - 1 || distPoint.x < 0 ||
-                distPoint.y > origSize.height - 1 || distPoint.y < 0)
-            {
-                continue;
-            }
-
-            // save distorted edge of the frame 
-            if (((j == 0 || j == newSize.height - 1) && i % 100 == 0) ||
-                ((i == 0 || i == newSize.width - 1) && j % 100 == 0))
-            {
-                frameBorder.push_back(Point(distPoint.y, distPoint.x));
-            }
-
-            map1.at<float>(i, j) = distPoint.y;
-            map2.at<float>(i, j) = distPoint.x;
-        }
-    }
-}
-
 // beta = brightness, alpha = contrast
 void changeContrastAndBrightness(Mat& image, double alpha = 1, int beta = 0)
 {
@@ -314,25 +179,9 @@ static bool readStringList(const string& filename, vector<string>& l)
         l.push_back((string)*it);
     return true;
 }
-// initialize values for StereoSGBM parameters
-int numDisparities = 8;
-int blockSize = 5;
-int preFilterType = 1;
-int preFilterSize = 1;
-int preFilterCap = 31;
-int minDisparity = 0;
-int textureThreshold = 10;
-int uniquenessRatio = 15;
-int speckleRange = 0;
-int speckleWindowSize = 0;
-int disp12MaxDiff = -1;
-int dispType = CV_16S;
 
-// Creating an object of StereoSGBM algorithm
-cv::Ptr<cv::StereoBM> stereo = cv::StereoBM::create();
 
 // Defining callback functions for the trackbars to update parameter values
-
 static void on_trackbar1(int, void*)
 {
     stereo->setNumDisparities(numDisparities * 16);
@@ -399,6 +248,23 @@ void on_mouse(int e, int x, int y, int d, void* ptr)
     p->y = y;
 }
 
+// initialize values for StereoSGBM parameters
+int numDisparities = 8;
+int blockSize = 5;
+int preFilterType = 1;
+int preFilterSize = 1;
+int preFilterCap = 31;
+int minDisparity = 0;
+int textureThreshold = 10;
+int uniquenessRatio = 15;
+int speckleRange = 0;
+int speckleWindowSize = 0;
+int disp12MaxDiff = -1;
+int dispType = CV_16S;
+
+// Creating an object of StereoSGBM algorithm
+cv::Ptr<cv::StereoBM> stereo = cv::StereoBM::create();
+
 int main(int argc, char** argv)
 {
     cv::CommandLineParser parser(argc, argv,
@@ -461,7 +327,6 @@ int main(int argc, char** argv)
 
     Size origSize = Size(1080, 1080);       //imread(image_list[0], -1).size();
     Size newSize = origSize * 1;            // determines the size of the output image
-    int fov = 90;                           // output image fov
 
     Mat map1(newSize, CV_32FC1, float(0));   // x map
     Mat map2(newSize, CV_32FC1, float(0));   // y map
@@ -482,10 +347,8 @@ int main(int argc, char** argv)
         Mat left = img(Rect(1070, 0, 1080, 1080)).clone();
 
         if ((lastPitch != pitchTrack || lastYaw != yawTrack) && FAST_METHOD){
-            gridDist.clear();      
                                                        // destroy old points
-            dewrapper.fillMaps(origSize);
-            //fillMaps(map1, map2, origSize, newSize, fov, gridDist);                       // fill new maps with current parameters. 
+            dewrapper.fillMaps(origSize);                      // fill new maps with current parameters. 
             cout << "Maps ready" << endl;
 
             lastPitch = pitchTrack;                                                       // remember parameters
@@ -494,9 +357,6 @@ int main(int argc, char** argv)
 
         Mat leftImageRemapped(newSize, CV_8UC3, Scalar(0, 0, 0));
         Mat rightImageRemapped(newSize, CV_8UC3, Scalar(0, 0, 0));
-
-        //remap(left, leftImageRemapped, map1, map2, INTER_CUBIC, BORDER_CONSTANT);
-        //remap(right, rightImageRemapped, map1, map2, INTER_CUBIC, BORDER_CONSTANT);
         leftImageRemapped = dewrapper.dewrapImage(left);
         rightImageRemapped = dewrapper.dewrapImage(right);
         
@@ -504,10 +364,8 @@ int main(int argc, char** argv)
         // draw grid
         for each (Point center in gridDist)
         {
-            string strFov = "FOV: " + to_string(fov);
             if (!textPut) {
                 Point textOrigin = center - Point(20,20);
-                putText(img, strFov, textOrigin, FONT_HERSHEY_COMPLEX_SMALL, 1, Scalar(255, 255, 255));
                 textPut = true;
             }
             circle(img, center, 4, Scalar(115, 25, 10), 3);

@@ -152,6 +152,7 @@ cv::Mat FisheyeDewrapper::rotatePoints(cv::Mat worldPoints)
 
 void FisheyeDewrapper::fillMaps(cv::Size origSize)
 {
+    frameBorder.clear();
     for (int i = 0; i < newSize.width; i++)
     {
         for (int j = 0; j < newSize.height; j++)
