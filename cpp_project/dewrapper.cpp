@@ -20,21 +20,15 @@ int px_counter = 0;
 using namespace cv;
 using namespace std;
 
-Point projectWorldToFisheye(Mat worldPoint, Size fisheyeSize);
-Mat projectFisheyeToWorld(Point pixel);
-Point2f projectWorldToPinhole(Mat cameraCoords, int width);
-
 //  Trackbar parameters
 int yawTrack = 90;
 int yawTrack_max = 180;
 int pitchTrack = 90;
 int pitchTrack_max = 180;
 
-//double pinholeFocus = 1080 / (2 * tan(90 / 2));  
 // Global values to read trackbar values
 Point globalPixel(0, 0);
 Point globalReproj(0, 0);
-//Mat globalCamCoords = Mat(1, 3, CV_32F, float(0));
 
 static void cropUglyScreenshots(const vector<string>& list)
 {

@@ -125,15 +125,39 @@ cv::Mat FisheyeDewrapper::projectPinholeToWorld(cv::Point pixel, cv::Size imgSiz
 cv::Mat FisheyeDewrapper::projectFisheyeToWorld(cv::Point pixel)
 {
     cv::Mat direction(1, 3, CV_32F, float(0));
-    double a[] = { 350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9) };       // Sarcamuzza coeffs from MATLAB
+    //double a[] = { 350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9) };       // Sarcamuzza coeffs from MATLAB
     double scale = 0.0222;         // lambda scale factor
-    double rho = norm(pixel);      // sqrt xy
+    double rho = norm(pixel);      // sqrt ( x^2 + y^2 )
 
     direction.at<float>(0) = scale * pixel.x;
     direction.at<float>(1) = scale * pixel.y;
     direction.at<float>(2) = scale * (polynom[0] + polynom[1] * pow(rho, 2) + polynom[2] * pow(rho, 3) + polynom[3] * pow(rho, 4));
 
     return direction;
+}
+
+cv::Point FisheyeDewrapper::reverseSarcamuzza(cv::Point pixel)
+{
+    cv::Point guessPoint(0, 0);
+    double error = 100;
+    int coef;
+
+    do
+    {   
+        cv::Point2f guessProjection = projectWorldToPinhole(projectFisheyeToWorld(guessPoint), newSize);
+
+        double xError = guessProjection.x - pixel.x;
+        double yError = guessProjection.y - pixel.y;
+        error = std::sqrt(xError*xError + yError*yError);
+            
+        /* TODO complete the loop  */
+
+        double phi = std::atan2(yError, xError);
+        guessPoint.x += xError 
+
+    } while (error > 0.1);
+    
+    return cv::Point();
 }
 
 cv::Mat FisheyeDewrapper::rotatePoints(cv::Mat worldPoints)
