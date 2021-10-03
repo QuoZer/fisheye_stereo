@@ -8,6 +8,7 @@
 #include <string>
 #include <time.h>
 #include <cstdarg>
+#include "FisheyeDewrapper.hpp"
 
 const bool DETECT_CHESS = false;
 const bool PUT_CIRCLES = false;
@@ -467,6 +468,13 @@ int main(int argc, char** argv)
     vector<Point> grid;                   // vectors of grid points
     vector<Point> gridDist;
 
+    FisheyeDewrapper dewrapper;
+    dewrapper.setCoefficents(350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9) );
+    dewrapper.setSize(newSize);
+    dewrapper.setFovWide(90);
+    dewrapper.setRpy(0, 0, 0);
+
+
     while(true)         //  iterate through images       
     {
         Mat img = imread(image_list[index], -1);
@@ -474,8 +482,10 @@ int main(int argc, char** argv)
         Mat left = img(Rect(1070, 0, 1080, 1080)).clone();
 
         if ((lastPitch != pitchTrack || lastYaw != yawTrack) && FAST_METHOD){
-            gridDist.clear();                                                             // destroy old points
-            fillMaps(map1, map2, origSize, newSize, fov, gridDist);                       // fill new maps with current parameters. 
+            gridDist.clear();      
+                                                       // destroy old points
+            dewrapper.fillMaps(origSize);
+            //fillMaps(map1, map2, origSize, newSize, fov, gridDist);                       // fill new maps with current parameters. 
             cout << "Maps ready" << endl;
 
             lastPitch = pitchTrack;                                                       // remember parameters
@@ -485,8 +495,10 @@ int main(int argc, char** argv)
         Mat leftImageRemapped(newSize, CV_8UC3, Scalar(0, 0, 0));
         Mat rightImageRemapped(newSize, CV_8UC3, Scalar(0, 0, 0));
 
-        remap(left, leftImageRemapped, map1, map2, INTER_CUBIC, BORDER_CONSTANT);
-        remap(right, rightImageRemapped, map1, map2, INTER_CUBIC, BORDER_CONSTANT);
+        //remap(left, leftImageRemapped, map1, map2, INTER_CUBIC, BORDER_CONSTANT);
+        //remap(right, rightImageRemapped, map1, map2, INTER_CUBIC, BORDER_CONSTANT);
+        leftImageRemapped = dewrapper.dewrapImage(left);
+        rightImageRemapped = dewrapper.dewrapImage(right);
         
         bool textPut = false;
         // draw grid
@@ -533,6 +545,8 @@ int main(int argc, char** argv)
             reprojectImageTo3D(disparity, image3D, Q);
             
             //cout << "WIP" << endl;
+            cv::imshow("image 3d", image3D);
+
             depthSwitcher = false;
         }
 

@@ -2,11 +2,67 @@
 
 FisheyeDewrapper::FisheyeDewrapper()
 {
+
+}
+
+void FisheyeDewrapper::createMaps()
+{
     map1 = cv::Mat(newSize, CV_32FC1, float(0));
     map2 = cv::Mat(newSize, CV_32FC1, float(0));
 }
 
-cv::Point FisheyeDewrapper::projectWorldToFisheye(cv::Mat worldPoint, cv::Size fisheyeSize)
+void FisheyeDewrapper::setSize(int width, int height)
+{
+    newSize.width = width;
+    newSize.height = height;
+    createMaps();
+}
+
+void FisheyeDewrapper::setSize(cv::Size size)
+{
+    newSize = size;
+    createMaps();
+}
+
+void FisheyeDewrapper::setFov(float x, float y)
+{
+    xFov = x;
+    yFov = y;
+
+}
+
+void FisheyeDewrapper::setFovWide(float wFov)
+{
+    xFov = wFov;
+    yFov = wFov * 9 / 16;
+}
+
+void FisheyeDewrapper::setCoefficents(double coeffs[4])
+{
+    polynom[0] = coeffs[0];
+    polynom[1] = coeffs[1];
+    polynom[2] = coeffs[2];
+    polynom[3] = coeffs[3];
+}
+
+void FisheyeDewrapper::setCoefficents(double a1, double a2, double a3, double a4)
+{
+    polynom[0] = a1;
+    polynom[1] = a2;
+    polynom[2] = a3;
+    polynom[3] = a4;
+}
+
+void FisheyeDewrapper::setRpy(float yaw, float pitch, float roll)
+{
+    this->yaw = yaw;
+    this->pitch = pitch;
+    this->roll = roll;
+
+    // TODO: fillMaps() after angle update
+}
+
+cv::Point2f FisheyeDewrapper::projectWorldToFisheye(cv::Mat worldPoint, cv::Size fisheyeSize)
 {
     float wx = worldPoint.at<float>(0);
     float wy = worldPoint.at<float>(1);
@@ -49,13 +105,13 @@ cv::Point2f FisheyeDewrapper::projectWorldToPinhole(cv::Mat cameraCoords, cv::Si
     return pinholePoint;
 }
 
-cv::Mat FisheyeDewrapper::projectPinholeToWorld(cv::Point pixel, cv::Size imgSize, int fov)
+cv::Mat FisheyeDewrapper::projectPinholeToWorld(cv::Point pixel, cv::Size imgSize)
 {
     pixel.x =   pixel.x - imgSize.width / 2;         // converting angle coordinates to the center ones
     pixel.y = - pixel.y + imgSize.height / 2;
 
     float cz = 2;                                   // doesnt really affect much
-    double fovRad = fov * PI / 180;                 // assuming equal FOV on x & y
+    double fovRad = xFov * PI / 180;                 // assuming equal FOV on x & y
     double pinholeFocus = imgSize.width / (2 * tan(fovRad / 2));
 
     cv::Mat cameraCoords(1, 3, CV_32F, float(0));
@@ -63,7 +119,7 @@ cv::Mat FisheyeDewrapper::projectPinholeToWorld(cv::Point pixel, cv::Size imgSiz
     cameraCoords.at<float>(1) = pixel.y * cz / pinholeFocus;
     cameraCoords.at<float>(2) = cz;
 
-    return cameraCoords;
+    return rotatePoints(cameraCoords);
 }
 
 cv::Mat FisheyeDewrapper::projectFisheyeToWorld(cv::Point pixel)
@@ -77,13 +133,10 @@ cv::Mat FisheyeDewrapper::projectFisheyeToWorld(cv::Point pixel)
     direction.at<float>(1) = scale * pixel.y;
     direction.at<float>(2) = scale * (polynom[0] + polynom[1] * pow(rho, 2) + polynom[2] * pow(rho, 3) + polynom[3] * pow(rho, 4));
 
-    double yaw = 0; //(yawTrack - 90) * PI / 180;
-    double pitch = 0; // (pitchTrack - 90)* PI / 180;
-
     return direction;
 }
 
-cv::Mat FisheyeDewrapper::rotatePoints(cv::Mat worldPoints, float yaw, float pitch, float roll)
+cv::Mat FisheyeDewrapper::rotatePoints(cv::Mat worldPoints)
 {
     cv::Mat rotZ(cv::Matx33f(1, 0, 0,
         0, cos(yaw), sin(yaw),
@@ -97,14 +150,14 @@ cv::Mat FisheyeDewrapper::rotatePoints(cv::Mat worldPoints, float yaw, float pit
     return worldPoints * rotY * rotX * rotZ;
 }
 
-void FisheyeDewrapper::fillMaps(cv::Size origSize, cv::Size newSize, int fov, std::vector<cv::Point>& frameBorder)
+void FisheyeDewrapper::fillMaps(cv::Size origSize)
 {
     for (int i = 0; i < newSize.width; i++)
     {
         for (int j = 0; j < newSize.height; j++)
         {
             cv::Point distPoint = projectWorldToFisheye(projectPinholeToWorld(
-                cv::Point(i, j), origSize, fov),
+                cv::Point(i, j), origSize),
                 newSize);
 
             if (distPoint.x > origSize.width - 1 || distPoint.x < 0 ||
@@ -124,4 +177,11 @@ void FisheyeDewrapper::fillMaps(cv::Size origSize, cv::Size newSize, int fov, st
             map2.at<float>(i, j) = distPoint.x;
         }
     }
+}
+
+cv::Mat FisheyeDewrapper::dewrapImage(cv::Mat inputImage)
+{
+    cv::Mat remapped(newSize, CV_8UC3, cv::Scalar(0, 0, 0));
+    cv::remap(inputImage, remapped, map1, map2, cv::INTER_CUBIC, cv::BORDER_CONSTANT);
+    return remapped;
 }

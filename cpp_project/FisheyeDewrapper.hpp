@@ -1,35 +1,52 @@
 #include "opencv2/core.hpp"
+#include "opencv2/imgproc.hpp"
 #include <vector>
 
-const double PI = 3.1416;
 
 /* TODO: Constructor, */
 
 class FisheyeDewrapper
 {
 private:
-	int xFov = 90; // output image fov
-	int yFov = 90; // or 16:9 equivalent
+	const double PI = 3.1416;
+
+	float xFov; // output image fov
+	float yFov; // or 16:9 equivalent
 	cv::Size newSize; // output image size
+	/* RPY angles for the world point rotator*/
+	float yaw;
+	float pitch;
+	float roll;
+
 private:
-	double polynom[4] = { 350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9) };  // Sarcamuzza model 
+	double polynom[4];		// = { 350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9) };  // Sarcamuzza model 
 	cv::Mat map1;   // x map
 	cv::Mat map2;   // y map
+	std::vector<cv::Point> frameBorder; //border to draw on original image 
+
+private:
+	void createMaps();
+	cv::Mat rotatePoints(cv::Mat worldPoints);
 
 public:
-	FisheyeDewrapper FisheyeDewrapper();
+	FisheyeDewrapper();
 	void setSize(int width, int height);
 	void setSize(cv::Size size);
-	void setFov(int x, int y);
-	void setFov(int x);
+	void setFov(float x, float y);
+	void setFovWide(float wFov);
+	void setCoefficents(double coeffs[4]);
+	void setCoefficents(double a1, double a2, double a3, double a4);
+	void setRpy(float yaw, float pitch, float roll);
+
 public:
-	cv::Point projectWorldToFisheye(cv::Mat worldPoint, cv::Size fisheyeSize);
+	cv::Point2f projectWorldToFisheye(cv::Mat worldPoint, cv::Size fisheyeSize);
 	cv::Point2f projectWorldToPinhole(cv::Mat cameraCoords, cv::Size imgSize);
 	cv::Mat projectFisheyeToWorld(cv::Point pixel);
-	cv::Mat projectPinholeToWorld(cv::Point pixel, cv::Size imgSize, int fov);
+	cv::Mat projectPinholeToWorld(cv::Point pixel, cv::Size imgSize);
 
-	cv::Mat rotatePoints(cv::Mat worldPoints, float yaw, float pitch, float roll);
-	void fillMaps(cv::Mat& map1, cv::Mat& map2, cv::Size origSize, cv::Size newSize, int fov, std::vector<cv::Point>& frameBorder);
+
+	void fillMaps(cv::Size origSize);
+	cv::Mat dewrapImage(cv::Mat inputImage);
 };
 
 
