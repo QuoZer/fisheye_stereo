@@ -1,5 +1,6 @@
 #include "opencv2/core.hpp"
 #include "opencv2/imgproc.hpp"
+#include <iostream>
 #include <vector>
 
 
@@ -11,6 +12,7 @@ private:	/* Parameters */
 	const double PI = 3.1416;
 	float xFov; // output image fov
 	float yFov; // or 16:9 equivalent
+	cv::Size oldSize; // input image size
 	cv::Size newSize; // output image size
 	/* RPY angles for the world point rotator*/
 	float yaw;
@@ -30,6 +32,7 @@ private:	/* Internal functions */
 	cv::Point2f projectWorldToPinhole(cv::Mat cameraCoords, cv::Size imgSize);
 	cv::Mat projectFisheyeToWorld(cv::Point pixel);
 	cv::Mat projectPinholeToWorld(cv::Point pixel, cv::Size imgSize);
+	void updateGuess(cv::Point& oldguess, double deltaX, double deltaY);
 	cv::Point reverseSarcamuzza(cv::Point pixel);	// 
 
 public:		/* Settings */
@@ -44,6 +47,7 @@ public:		/* Settings */
 
 public:		/*  */
 	void fillMaps(cv::Size origSize);
+	void fillMapsSarcamuzza(cv::Size origSize);
 	cv::Mat dewrapImage(cv::Mat inputImage);
 	
 };

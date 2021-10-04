@@ -175,6 +175,22 @@ static bool readStringList(const string& filename, vector<string>& l)
 }
 
 
+// initialize values for StereoSGBM parameters
+int numDisparities = 8;
+int blockSize = 5;
+int preFilterType = 1;
+int preFilterSize = 1;
+int preFilterCap = 31;
+int minDisparity = 0;
+int textureThreshold = 10;
+int uniquenessRatio = 15;
+int speckleRange = 0;
+int speckleWindowSize = 0;
+int disp12MaxDiff = -1;
+int dispType = CV_16S;
+
+// Creating an object of StereoSGBM algorithm
+cv::Ptr<cv::StereoBM> stereo = cv::StereoBM::create();
 // Defining callback functions for the trackbars to update parameter values
 static void on_trackbar1(int, void*)
 {
@@ -242,22 +258,6 @@ void on_mouse(int e, int x, int y, int d, void* ptr)
     p->y = y;
 }
 
-// initialize values for StereoSGBM parameters
-int numDisparities = 8;
-int blockSize = 5;
-int preFilterType = 1;
-int preFilterSize = 1;
-int preFilterCap = 31;
-int minDisparity = 0;
-int textureThreshold = 10;
-int uniquenessRatio = 15;
-int speckleRange = 0;
-int speckleWindowSize = 0;
-int disp12MaxDiff = -1;
-int dispType = CV_16S;
-
-// Creating an object of StereoSGBM algorithm
-cv::Ptr<cv::StereoBM> stereo = cv::StereoBM::create();
 
 int main(int argc, char** argv)
 {
@@ -342,7 +342,7 @@ int main(int argc, char** argv)
 
         if ((lastPitch != pitchTrack || lastYaw != yawTrack) && FAST_METHOD){
                                                        // destroy old points
-            dewrapper.fillMaps(origSize);                      // fill new maps with current parameters. 
+            dewrapper.fillMapsSarcamuzza(origSize);                      // fill new maps with current parameters. 
             cout << "Maps ready" << endl;
 
             lastPitch = pitchTrack;                                                       // remember parameters
@@ -383,7 +383,7 @@ int main(int argc, char** argv)
         putText(disparity, dispVal, Point(30,950), FONT_HERSHEY_COMPLEX_SMALL, 1, Scalar(255, 255, 255));
         //ShowManyImages("Images", 2, leftImageRemapped, rightImageRemapped);
         // Displaying the disparity map
-        cv::imshow("disparityy", disparity);
+        cv::imshow("disparityy", leftImageRemapped);
 
         if (depthSwitcher)
         {

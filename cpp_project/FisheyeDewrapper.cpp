@@ -138,26 +138,56 @@ cv::Mat FisheyeDewrapper::projectFisheyeToWorld(cv::Point pixel)
 
 cv::Point FisheyeDewrapper::reverseSarcamuzza(cv::Point pixel)
 {
+    pixel.x = pixel.x - newSize.width / 2;         // converting angle coordinates to the center ones
+    pixel.y = -pixel.y + newSize.height / 2;
+
     cv::Point guessPoint(0, 0);
     double error = 100;
-    int coef;
-
+    double xSplit = newSize.width / 2;
+    double ySplit = newSize.height / 2;
+    
     do
     {   
         cv::Point2f guessProjection = projectWorldToPinhole(projectFisheyeToWorld(guessPoint), newSize);
-
+        
         double xError = guessProjection.x - pixel.x;
         double yError = guessProjection.y - pixel.y;
         error = std::sqrt(xError*xError + yError*yError);
-            
+        // std::cout << guessPoint << " | " << guessProjection << std::endl;
         /* TODO complete the loop  */
 
-        double phi = std::atan2(yError, xError);
-        guessPoint.x += xError 
+        xSplit /= 2;
+        ySplit /= 2;
 
-    } while (error > 0.1);
+        if (xError < 0) {
+            guessPoint.x = guessPoint.x + xSplit;
+        }
+        else {
+            guessPoint.x = guessPoint.x - xSplit;
+        }
+        if (yError < 0) {
+            guessPoint.y = guessPoint.y + ySplit;
+        }
+        else {
+            guessPoint.y = guessPoint.y - ySplit;
+        }
+
+        // std::cout << "Pixel: " << pixel << " Guess: " << guessPoint << " Error: " << error << " x| " << xSplit << " y| " << ySplit << std::endl;
+
+    } while (error > 0.5 && xSplit > 0.01);
+
+    guessPoint.x = guessPoint.x + newSize.width / 2;
+    guessPoint.y = -guessPoint.y + newSize.height / 2;
     
-    return cv::Point();
+    return guessPoint;
+}
+
+void FisheyeDewrapper::updateGuess(cv::Point& oldguess, double deltaX, double deltaY)
+{
+    if (deltaX > 0)
+    {
+
+    }
 }
 
 cv::Mat FisheyeDewrapper::rotatePoints(cv::Mat worldPoints)
@@ -194,6 +224,35 @@ void FisheyeDewrapper::fillMaps(cv::Size origSize)
             // save distorted edge of the frame 
             if (((j == 0 || j == newSize.height - 1) && i % 100 == 0) ||
                 ((i == 0 || i == newSize.width - 1) && j % 100 == 0)  )
+            {
+                frameBorder.push_back(cv::Point(distPoint.y, distPoint.x));
+            }
+
+            map1.at<float>(i, j) = distPoint.y;
+            map2.at<float>(i, j) = distPoint.x;
+        }
+    }
+}
+
+void FisheyeDewrapper::fillMapsSarcamuzza(cv::Size origSize)
+{
+    createMaps(); // JUST IN CASE
+    frameBorder.clear();
+    for (int i = 0; i < newSize.width; i++)
+    {
+        for (int j = 0; j < newSize.height; j++)
+        {
+            cv::Point distPoint = reverseSarcamuzza(cv::Point(i, j));
+
+            if (distPoint.x > origSize.width - 1 || distPoint.x < 0 ||
+                distPoint.y > origSize.height - 1 || distPoint.y < 0)
+            {
+                continue;   // skips out of border points
+            }
+
+            // save distorted edge of the frame 
+            if (((j == 0 || j == newSize.height - 1) && i % 100 == 0) ||
+                ((i == 0 || i == newSize.width - 1) && j % 100 == 0))
             {
                 frameBorder.push_back(cv::Point(distPoint.y, distPoint.x));
             }
