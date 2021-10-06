@@ -139,7 +139,7 @@ cv::Mat FisheyeDewrapper::projectFisheyeToWorld(cv::Point pixel)
     direction.at<float>(1) = scale * pixel.y;
     direction.at<float>(2) = scale * (polynom[0] + polynom[1] * pow(rho, 2) + polynom[2] * pow(rho, 3) + polynom[3] * pow(rho, 4));
 
-    return direction;
+    return rotatePoints(direction);
 }
 
 cv::Point FisheyeDewrapper::reverseSarcamuzza(cv::Point pixel)
@@ -201,7 +201,7 @@ void FisheyeDewrapper::updateGuess(cv::Point& oldguess, double deltaX, double de
     }
 }
 
-cv::Mat FisheyeDewrapper::rotatePoints(cv::Mat worldPoints)
+cv::Mat FisheyeDewrapper::rotatePoints(cv::Mat worldPoint)
 {
     cv::Mat rotZ(cv::Matx33f(1, 0, 0,
         0, cos(yaw), sin(yaw),
@@ -212,7 +212,7 @@ cv::Mat FisheyeDewrapper::rotatePoints(cv::Mat worldPoints)
     cv::Mat rotY(cv::Matx33f(cos(roll), -sin(roll), 0,      // yaw?
         sin(roll), cos(roll), 0,
         0, 0, 1));
-    return worldPoints * rotY * rotX * rotZ;
+    return worldPoint * rotY * rotX * rotZ;
 }
 
 void FisheyeDewrapper::fillMaps(cv::Size origSize)
@@ -269,6 +269,7 @@ void FisheyeDewrapper::fillMapsSarcamuzza(cv::Size origSize)
             map1.at<float>(i, j) = distPoint.y;
             map2.at<float>(i, j) = distPoint.x;
         }
+        if (i%135==0) std::cout << "Collumn N" << i << std::endl;
     }
 }
 
