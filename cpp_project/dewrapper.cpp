@@ -329,7 +329,7 @@ int main(int argc, char** argv)
 
     FisheyeDewrapper dewrapper;
     dewrapper.setCoefficents(350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9) );
-    dewrapper.setSize(newSize);
+    dewrapper.setSize(origSize, newSize);
     dewrapper.setFovWide(90);
     dewrapper.setRpy(0, 0, 0);
 

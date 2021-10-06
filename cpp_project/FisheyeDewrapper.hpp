@@ -28,17 +28,17 @@ private:	/* Data */
 private:	/* Internal functions */
 	void createMaps();
 	cv::Mat rotatePoints(cv::Mat worldPoints);
-	cv::Point2f projectWorldToFisheye(cv::Mat worldPoint, cv::Size fisheyeSize);
-	cv::Point2f projectWorldToPinhole(cv::Mat cameraCoords, cv::Size imgSize);
+	cv::Point2f projectWorldToFisheye(cv::Mat worldPoin);
+	cv::Point2f projectWorldToPinhole(cv::Mat cameraCoords);
 	cv::Mat projectFisheyeToWorld(cv::Point pixel);
-	cv::Mat projectPinholeToWorld(cv::Point pixel, cv::Size imgSize);
+	cv::Mat projectPinholeToWorld(cv::Point pixel);
 	void updateGuess(cv::Point& oldguess, double deltaX, double deltaY);
 	cv::Point reverseSarcamuzza(cv::Point pixel);	// 
 
 public:		/* Settings */
 	FisheyeDewrapper();
-	void setSize(int width, int height);
-	void setSize(cv::Size size);
+	void setSize(int oldWidth, int oldHeight, int newWidth, int  newHeight);
+	void setSize(cv::Size oldsize, cv::Size newsize);
 	void setFov(float x, float y);
 	void setFovWide(float wFov);
 	void setCoefficents(double coeffs[4]);
