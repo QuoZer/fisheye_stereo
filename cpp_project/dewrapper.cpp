@@ -206,7 +206,7 @@ int main(int argc, char** argv)
     vector<Point> gridDist;
 
     FisheyeDewrapper dewrapper;
-    dewrapper.setCoefficents( 350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9) );
+    dewrapper.setIntrinsics( 350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9), cv::Vec2d(0, 0), cv::Matx22d(1, 0, 0, 1), 0.022 );
     dewrapper.setSize(origSize, newSize);
     dewrapper.setFovWide(90);
     dewrapper.setRpy(0, 0, 0);
