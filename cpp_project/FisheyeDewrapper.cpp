@@ -148,7 +148,7 @@ cv::Point FisheyeDewrapper::reverseSarcamuzza(cv::Point pixel)
     
     do
     {   
-        cv::Point2f guessProjection = projectWorldToPinhole(projectFisheyeToWorld(guessPoint), newSize);
+        cv::Point2d guessProjection = projectWorldToPinhole(projectFisheyeToWorld(guessPoint), newSize);
         
         double xError = guessProjection.x - pixel.x;
         double yError = guessProjection.y - pixel.y;
@@ -175,7 +175,7 @@ cv::Point FisheyeDewrapper::reverseSarcamuzza(cv::Point pixel)
         // std::cout << "Pixel: " << pixel << " Guess: " << guessPoint << " Error: " << error << " x| " << xSplit << " y| " << ySplit << std::endl;
 
     } while (error > 0.5 && xSplit > 0.01);
-
+    // std::cout << error << std::endl;
     guessPoint.x = guessPoint.x + newSize.width / 2;
     guessPoint.y = -guessPoint.y + newSize.height / 2;
     
