@@ -154,7 +154,7 @@ cv::Point FisheyeDewrapper::reverseSarcamuzza(cv::Point pixel)
     pixel.x = pixel.x - newSize.width / 2;         // converting angle coordinates to the center ones
     pixel.y = -pixel.y + newSize.height / 2;
 
-    cv::Point guessPoint(10, 10);      // image center
+    cv::Point guessPoint(0, 0);      // image center
     double error = 100;
     double xSplit = newSize.width / 2;
     double ySplit = newSize.height / 2;
@@ -168,8 +168,8 @@ cv::Point FisheyeDewrapper::reverseSarcamuzza(cv::Point pixel)
         error = std::sqrt(xError*xError + yError*yError);
         //std::cout << guessPoint << " | " << guessProjection << std::endl;
 
-        xSplit /= 2;
-        ySplit /= 2;
+        xSplit /= 1.6;
+        ySplit /= 1.6;
 
         // picking the right quarter
         if (xError < 0) {
@@ -185,11 +185,11 @@ cv::Point FisheyeDewrapper::reverseSarcamuzza(cv::Point pixel)
             guessPoint.y = guessPoint.y - ySplit;
         }
 
-        //std::cout << "Pixel: " << pixel << " Guess: " << guessPoint << " Error: " << error << " x| " << xError << " y| " << yError << std::endl;
+        //std::cout << "Pixel: " << pixel << " Guess: " << guessProjection /* << " Error: " << error << " x| " << xError << " y| " << yError*/ << std::endl;
 
     } while (error > 0.5 && xSplit > 0.01);
-    // std::cout << error << std::endl;
-
+    //std::cout << "Error: " << error << std::endl;
+    errorsum += error;
     guessPoint.x =  guessPoint.x + newSize.width / 2;
     guessPoint.y = -guessPoint.y + newSize.height / 2;
     
@@ -281,6 +281,7 @@ void FisheyeDewrapper::fillMapsSarcamuzza(cv::Size origSize)
         }
         if (i%135==0) std::cout << "Collumn N" << i << std::endl;
     }
+    std::cout << "Avg. error: " << errorsum / (1080 * 1080) << std::endl;
 }
 
 cv::Mat FisheyeDewrapper::dewrapImage(cv::Mat inputImage)

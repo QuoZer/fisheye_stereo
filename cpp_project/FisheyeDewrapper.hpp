@@ -4,7 +4,8 @@
 #include <vector>
 
 
-/* TODO: Constructor, */
+/* TODO: -Constructor, 
+		 -Universal fillMap for different models	*/
 
 class FisheyeDewrapper
 {
@@ -20,6 +21,7 @@ private:	/* Parameters */
 	float roll;
 
 private:	/* Data */
+	double errorsum;
 	/* Intrinsics */
 	double polynom[4];					// Sarcamuzza model coefficients
 	cv::Vec2d centerOffset;				// Distortion center
@@ -39,7 +41,6 @@ private:	/* Internal functions */
 	cv::Point2f projectWorldToPinhole(cv::Mat cameraCoords);
 	cv::Mat projectFisheyeToWorld(cv::Point pixel);
 	cv::Mat projectPinholeToWorld(cv::Point pixel);
-	void updateGuess(cv::Point& oldguess, double deltaX, double deltaY);
 	cv::Point reverseSarcamuzza(cv::Point pixel);	// 
 
 public:		/* Settings */
