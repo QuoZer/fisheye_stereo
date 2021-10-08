@@ -3,6 +3,8 @@
 #include <iostream>
 #include <vector>
 
+#define SARCAMUZZA 01
+#define ATAN 02
 
 /* TODO: -Constructor, 
 		 -Universal fillMap for different models	*/
@@ -34,14 +36,19 @@ private:	/* Data */
 
 private:	/* Internal functions */
 	void createMaps();
-	cv::Mat rotatePoints(cv::Mat worldPoints);
+	/*  */
 	void toCenter(cv::Point& cornerPixel, cv::Size imagesize);
 	void toCorner(cv::Point& centerPixel, cv::Size imagesize);
+	cv::Mat rotatePoint(cv::Mat worldPoint);
+	/* Projection functions */
 	cv::Point2f projectWorldToFisheye(cv::Mat worldPoin);
 	cv::Point2f projectWorldToPinhole(cv::Mat cameraCoords);
 	cv::Mat projectFisheyeToWorld(cv::Point pixel);
 	cv::Mat projectPinholeToWorld(cv::Point pixel);
-	cv::Point reverseSarcamuzza(cv::Point pixel);	// 
+	cv::Point reverseSarcamuzza(cv::Point pixel);	// Fisheye to Pinhole 
+	/*  */
+	void fillMapsSarcamuzza();
+	void fillMapsAtan();
 
 public:		/* Settings */
 	FisheyeDewrapper();
@@ -54,8 +61,7 @@ public:		/* Settings */
 	void setRpy(float yaw, float pitch, float roll);
 
 public:		/*  */
-	void fillMaps(cv::Size origSize);
-	void fillMapsSarcamuzza(cv::Size origSize);
+	void fillMaps(int mode);
 	cv::Mat dewrapImage(cv::Mat inputImage);
 	
 };

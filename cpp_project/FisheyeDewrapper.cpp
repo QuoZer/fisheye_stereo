@@ -133,7 +133,7 @@ cv::Mat FisheyeDewrapper::projectPinholeToWorld(cv::Point pixel)
     cameraCoords.at<float>(1) = pixel.y * cz / pinholeFocus;
     cameraCoords.at<float>(2) = cz;
 
-    return rotatePoints(cameraCoords);
+    return rotatePoint(cameraCoords);
 }
 
 cv::Mat FisheyeDewrapper::projectFisheyeToWorld(cv::Point pixel)
@@ -146,12 +146,12 @@ cv::Mat FisheyeDewrapper::projectFisheyeToWorld(cv::Point pixel)
     cameraCoords.at<float>(1) = lambda * undistPixel[1];
     cameraCoords.at<float>(2) = lambda * (polynom[0] + polynom[1] * pow(rho, 2) + polynom[2] * pow(rho, 3) + polynom[3] * pow(rho, 4));
 
-    return rotatePoints(cameraCoords);
+    return rotatePoint(cameraCoords);
 }
 
 cv::Point FisheyeDewrapper::reverseSarcamuzza(cv::Point pixel)
 {
-    pixel.x = pixel.x - newSize.width / 2;         // converting angle coordinates to the center ones
+    pixel.x = pixel.x - newSize.width / 2;         // converting corner coordinates to the center ones
     pixel.y = -pixel.y + newSize.height / 2;
 
     cv::Point guessPoint(0, 0);      // image center
@@ -197,7 +197,7 @@ cv::Point FisheyeDewrapper::reverseSarcamuzza(cv::Point pixel)
 }
 
 
-cv::Mat FisheyeDewrapper::rotatePoints(cv::Mat worldPoint)
+cv::Mat FisheyeDewrapper::rotatePoint(cv::Mat worldPoint)
 {
     cv::Mat rotZ(cv::Matx33f(1, 0, 0,
         0, cos(yaw), sin(yaw),
@@ -225,24 +225,33 @@ void FisheyeDewrapper::toCorner(cv::Point& centerPixel, cv::Size imagesize)
     centerPixel.y = -centerPixel.y + imagesize.height / 2;
 }
 
-void FisheyeDewrapper::fillMaps(cv::Size origSize)
+void FisheyeDewrapper::fillMaps(int mode)
 {
+    createMaps();
     frameBorder.clear();
-    for (int i = 0; i < newSize.width; i++)
-    {
-        for (int j = 0; j < newSize.height; j++)
-        {
-            cv::Point distPoint = projectWorldToFisheye(projectPinholeToWorld(cv::Point(i, j)));
 
-            if (distPoint.x > origSize.width - 1 || distPoint.x < 0 ||
-                distPoint.y > origSize.height - 1 || distPoint.y < 0)
+    if (mode == SARCAMUZZA) fillMapsSarcamuzza();
+    if (mode == ATAN)       fillMapsAtan();
+
+}
+
+void FisheyeDewrapper::fillMapsSarcamuzza()
+{
+    for (int i = 0; i < oldSize.width; i++)
+    {
+        for (int j = 0; j < oldSize.height; j++)
+        {
+            cv::Point distPoint = reverseSarcamuzza(cv::Point(i, j));
+
+            if (distPoint.x > newSize.width - 1 || distPoint.x < 0 ||
+                distPoint.y > newSize.height - 1 || distPoint.y < 0)
             {
                 continue;   // skips out of border points
             }
 
             // save distorted edge of the frame 
-            if (((j == 0 || j == newSize.height - 1) && i % 100 == 0) ||
-                ((i == 0 || i == newSize.width - 1) && j % 100 == 0)  )
+            if (((j == 0 || j == oldSize.height - 1) && i % 100 == 0) ||
+                ((i == 0 || i == oldSize.width - 1) && j % 100 == 0))
             {
                 frameBorder.push_back(cv::Point(distPoint.y, distPoint.x));
             }
@@ -250,21 +259,21 @@ void FisheyeDewrapper::fillMaps(cv::Size origSize)
             map1.at<float>(i, j) = distPoint.y;
             map2.at<float>(i, j) = distPoint.x;
         }
+        if (i%135==0) std::cout << "Collumn N" << i << std::endl;
     }
+    std::cout << "Avg. error: " << errorsum / (1080 * 1080) << std::endl;       // HACK
 }
 
-void FisheyeDewrapper::fillMapsSarcamuzza(cv::Size origSize)
+void FisheyeDewrapper::fillMapsAtan()
 {
-    createMaps(); // JUST IN CASE
-    frameBorder.clear();
     for (int i = 0; i < newSize.width; i++)
     {
         for (int j = 0; j < newSize.height; j++)
         {
-            cv::Point distPoint = reverseSarcamuzza(cv::Point(i, j));
+            cv::Point distPoint = projectWorldToFisheye(projectPinholeToWorld(cv::Point(i, j)));
 
-            if (distPoint.x > origSize.width - 1 || distPoint.x < 0 ||
-                distPoint.y > origSize.height - 1 || distPoint.y < 0)
+            if (distPoint.x > oldSize.width - 1 || distPoint.x < 0 ||
+                distPoint.y > oldSize.height - 1 || distPoint.y < 0)
             {
                 continue;   // skips out of border points
             }
@@ -279,9 +288,7 @@ void FisheyeDewrapper::fillMapsSarcamuzza(cv::Size origSize)
             map1.at<float>(i, j) = distPoint.y;
             map2.at<float>(i, j) = distPoint.x;
         }
-        if (i%135==0) std::cout << "Collumn N" << i << std::endl;
     }
-    std::cout << "Avg. error: " << errorsum / (1080 * 1080) << std::endl;
 }
 
 cv::Mat FisheyeDewrapper::dewrapImage(cv::Mat inputImage)

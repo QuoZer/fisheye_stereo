@@ -189,10 +189,7 @@ int main(int argc, char** argv)
     }
 
     int n_img = (int)image_list.size();
-    cout << n_img << endl;
-
-    cv::namedWindow("disparity", cv::WINDOW_NORMAL);
-    cv::resizeWindow("disparity", 600, 600);
+    cout << "Images: " << n_img << endl;
 
     int index = 2;
     bool recalcFlag = true;
@@ -216,11 +213,11 @@ int main(int argc, char** argv)
     {
         Mat img = imread(image_list[index], -1);
         Mat right = img(Rect(0, 0, 1080, 1080)).clone();
-        Mat left = img(Rect(1070, 0, 1080, 1080)).clone();
+        Mat left = img(Rect(1080, 0, 1080, 1080)).clone();
 
         if (recalcFlag && FAST_METHOD){
-                                                       // destroy old points
-            dewrapper.fillMapsSarcamuzza(origSize);                      // fill new maps with current parameters. 
+                                                       
+            dewrapper.fillMaps(SARCAMUZZA);                      // fill new maps with current parameters. 
             cout << "Maps ready" << endl;
 
             recalcFlag = false;
@@ -239,15 +236,15 @@ int main(int argc, char** argv)
                 Point textOrigin = center - Point(20,20);
                 textPut = true;
             }
-            circle(img, center, 4, Scalar(115, 25, 10), 3);
+            circle(left, center, 4, Scalar(115, 25, 10), 3);
         }
 
         // Converting images to grayscale
         //cv::cvtColor(leftImageRemapped, leftImageRemapped, cv::COLOR_BGR2GRAY);
-        cv::cvtColor(rightImageRemapped, rightImageRemapped, cv::COLOR_BGR2GRAY);
-        //ShowManyImages("Images", 2, leftImageRemapped, rightImageRemapped);
+        //cv::cvtColor(rightImageRemapped, rightImageRemapped, cv::COLOR_BGR2GRAY);
+        ShowManyImages("Images", 2, leftImageRemapped, left);
         // Displaying the disparity map
-        cv::imshow("disparity", leftImageRemapped);
+        //cv::imshow("disparity", leftImageRemapped);
 
 
         char key = (char)waitKey(1);
