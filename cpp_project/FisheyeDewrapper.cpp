@@ -152,8 +152,8 @@ cv::Mat FisheyeDewrapper::projectFisheyeToWorld(cv::Point pixel)
 
 cv::Point FisheyeDewrapper::reverseSarcamuzza(cv::Point pixel)      // Fisheye -> Pinhole
 {
-    pixel.x = pixel.x - newSize.width / 2;         // converting corner coordinates to the center ones
-    pixel.y = -pixel.y + newSize.height / 2;
+    // converting corner coordinates to the center ones
+    toCenter(pixel, newSize);
 
     cv::Point guessPoint(0, 0);      // image center
     double error = 100;
@@ -169,8 +169,8 @@ cv::Point FisheyeDewrapper::reverseSarcamuzza(cv::Point pixel)      // Fisheye -
         error = std::sqrt(xError*xError + yError*yError);
         //std::cout << guessPoint << " | " << guessProjection << std::endl;
 
-        xSplit /= 1.2;
-        ySplit /= 1.2;
+        xSplit /= 1.5;
+        ySplit /= 1.5;
 
         // picking the right quarter
         if (xError < 0) {
@@ -188,11 +188,10 @@ cv::Point FisheyeDewrapper::reverseSarcamuzza(cv::Point pixel)      // Fisheye -
 
         //std::cout << "Pixel: " << pixel << " Guess: " << guessProjection /* << " Error: " << error << " x| " << xError << " y| " << yError*/ << std::endl;
 
-    } while (error > 2 && xSplit > 0.01);
+    } while (error > 1 && xSplit > 0.01);
     //std::cout << "Error: " << error << std::endl;
     errorsum += error;
-    guessPoint.x =  guessPoint.x + newSize.width / 2;
-    guessPoint.y = -guessPoint.y + newSize.height / 2;
+    toCorner(guessPoint, newSize);
     
     return guessPoint;
 }
