@@ -49,13 +49,12 @@ private:	/* Internal functions */
 	/*  */
 	void fillMapsSarcamuzza();
 	void fillMapsAtan();
+	void setFovWide(float wFov);
 
 public:		/* Settings */
 	FisheyeDewrapper();
-	void setSize(int oldWidth, int oldHeight, int newWidth, int  newHeight);
-	void setSize(cv::Size oldsize, cv::Size newsize);
-	void setFov(float x, float y);
-	void setFovWide(float wFov);
+	void setSize(int oldWidth, int oldHeight, int newWidth, int  newHeight, float wideFov);
+	void setSize(cv::Size oldsize, cv::Size newsize, float wideFov);
 	void setIntrinsics(double coeffs[4], cv::Vec2d centerOffset, cv::Matx22d stretchMatrix, double scaleFactor);
 	void setIntrinsics(double a1, double a2, double a3, double a4, cv::Vec2d centerOffset, cv::Matx22d stretchMatrix, double scaleFactor);
 	void setRpy(float yaw, float pitch, float roll);

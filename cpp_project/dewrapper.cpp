@@ -195,17 +195,14 @@ int main(int argc, char** argv)
     bool recalcFlag = true;
 
     Size origSize = Size(1080, 1080);       //imread(image_list[0], -1).size();
-    Size newSize = origSize * 1;            // determines the size of the output image
+    Size newSize = Size(1080, 1080);        // origSize * 1;            // determines the size of the output image
 
-    Mat map1(newSize, CV_32FC1, float(0));   // x map
-    Mat map2(newSize, CV_32FC1, float(0));   // y map
     vector<Point> grid;                   // vectors of grid points
     vector<Point> gridDist;
 
     FisheyeDewrapper dewrapper;
     dewrapper.setIntrinsics( 350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9), cv::Vec2d(0, 0), cv::Matx22d(1, 0, 0, 1), 0.022 );
-    dewrapper.setSize(origSize, newSize);
-    dewrapper.setFovWide(90);
+    dewrapper.setSize(origSize, newSize, 90);
     dewrapper.setRpy(0, 0, 0);
 
 
@@ -215,7 +212,7 @@ int main(int argc, char** argv)
         Mat right = img(Rect(0, 0, 1080, 1080)).clone();
         Mat left = img(Rect(1080, 0, 1080, 1080)).clone();
 
-        if (recalcFlag && FAST_METHOD){
+        if (recalcFlag){
                                                        
             dewrapper.fillMaps(SARCAMUZZA);                      // fill new maps with current parameters. 
             cout << "Maps ready" << endl;
