@@ -194,8 +194,8 @@ int main(int argc, char** argv)
     int index = 2;
     bool recalcFlag = true;
 
-    Size origSize = Size(1080, 1080);       //imread(image_list[0], -1).size();
-    Size newSize = Size(1080, 1080);        // origSize * 1;            // determines the size of the output image
+    Size origSize(1080, 1080);       //imread(image_list[0], -1).size();
+    Size newSize(1080, 1080);        // origSize * 1;            // determines the size of the output image
 
     vector<Point> grid;                   // vectors of grid points
     vector<Point> gridDist;

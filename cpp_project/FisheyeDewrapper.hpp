@@ -3,8 +3,9 @@
 #include <iostream>
 #include <vector>
 
-#define SARCAMUZZA 01
-#define ATAN 02
+#define SARCAMUZZA 10
+#define ATAN	   20
+#define REV_SARCAMUZZA	30
 
 /* TODO: -Constructor, 
 		 -Universal fillMap for different models	*/
@@ -12,7 +13,7 @@
 class FisheyeDewrapper
 {
 private:	/* Parameters */
-	const double PI = 3.1416;
+	const double PI = 3.1416; 
 	float xFov;							// output image fov
 	float yFov;							// or 16:9 equivalent
 	cv::Size oldSize;					// input image size
@@ -25,7 +26,7 @@ private:	/* Parameters */
 private:	/* Data */
 	double errorsum;
 	/* Intrinsics */
-	double polynom[4];					// Sarcamuzza model coefficients
+	std::vector <double> polynom;					// Sarcamuzza model coefficients
 	cv::Vec2d centerOffset;				// Distortion center
 	cv::Matx22d stretchMatrix;			// Whatever that is in the stretch matrix
 	double lambda;						// Scale factor 
@@ -41,13 +42,15 @@ private:	/* Internal functions */
 	void toCorner(cv::Point& centerPixel, cv::Size imagesize);
 	cv::Mat rotatePoint(cv::Mat worldPoint);
 	/* Projection functions */
-	cv::Point2f projectWorldToFisheye(cv::Mat worldPoin);
+	cv::Point2f projectWorldToFisheye(cv::Mat worldPoint);
 	cv::Point2f projectWorldToPinhole(cv::Mat cameraCoords);
 	cv::Mat projectFisheyeToWorld(cv::Point pixel);
 	cv::Mat projectPinholeToWorld(cv::Point pixel);
 	cv::Point reverseSarcamuzza(cv::Point pixel);	// Fisheye to Pinhole 
+	cv::Point2d worldToFisheye(cv::Mat worldPoint);
 	/*  */
 	void fillMapsSarcamuzza();
+	void fillMapsRevSarcamuzza();
 	void fillMapsAtan();
 	void setFovWide(float wFov);
 

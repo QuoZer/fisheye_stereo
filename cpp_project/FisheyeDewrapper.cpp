@@ -34,15 +34,12 @@ void FisheyeDewrapper::setFovWide(float wFov)
     xFov = wFov;
     yFov = wFov * newSize.height / newSize.width;           // * 9/16
 
-    std::cout << "FOV, x: " << xFov << " FOV, y: " << yFov << std::endl;
+   // std::cout << "FOV, x: " << xFov << " FOV, y: " << yFov << std::endl;
 }
 
 void FisheyeDewrapper::setIntrinsics(double coeffs[4], cv::Vec2d centerOffset, cv::Matx22d stretchMatrix, double scaleFactor)
 {
-    polynom[0] = coeffs[0];     // memcpy?
-    polynom[1] = coeffs[1];
-    polynom[2] = coeffs[2];
-    polynom[3] = coeffs[3];
+    polynom.assign(coeffs, coeffs+4);       // treats both values as pointers 
 
     this->centerOffset = centerOffset;
     this->stretchMatrix = stretchMatrix;
@@ -51,10 +48,11 @@ void FisheyeDewrapper::setIntrinsics(double coeffs[4], cv::Vec2d centerOffset, c
 
 void FisheyeDewrapper::setIntrinsics(double a1, double a2, double a3, double a4, cv::Vec2d centerOffset, cv::Matx22d stretchMatrix, double scaleFactor)
 {
-    polynom[0] = a1;
-    polynom[1] = a2;
-    polynom[2] = a3;
-    polynom[3] = a4;
+    polynom.clear();
+    polynom.push_back(a1);
+    polynom.push_back(a2);
+    polynom.push_back(a3);
+    polynom.push_back(a4);
 
     this->centerOffset = centerOffset;
     this->stretchMatrix = stretchMatrix;
@@ -120,10 +118,9 @@ cv::Point2f FisheyeDewrapper::projectWorldToPinhole(cv::Mat cameraCoords)
 
 cv::Mat FisheyeDewrapper::projectPinholeToWorld(cv::Point pixel)
 {
-    pixel.x =   pixel.x - oldSize.width / 2;         // converting angle coordinates to the center ones
-    pixel.y = - pixel.y + oldSize.height / 2;
+    toCenter(pixel, oldSize);
 
-    float cz = 2;                                    // doesnt really affect much
+    float cz = 2.0;                                    // doesnt really affect much
     double xFovRad = xFov * PI / 180;                 // assuming equal FOV on x & y
     double yFovRad = yFov * PI / 180;
     double xPinholeFocus = oldSize.width / (2 * tan(xFovRad / 2));
@@ -134,7 +131,7 @@ cv::Mat FisheyeDewrapper::projectPinholeToWorld(cv::Point pixel)
     cameraCoords.at<float>(1) = pixel.y * cz / yPinholeFocus;
     cameraCoords.at<float>(2) = cz;
 
-    return rotatePoint(cameraCoords);
+    return cameraCoords;
 }
 
 cv::Mat FisheyeDewrapper::projectFisheyeToWorld(cv::Point pixel)
@@ -173,18 +170,10 @@ cv::Point FisheyeDewrapper::reverseSarcamuzza(cv::Point pixel)      // Fisheye -
         ySplit /= 1.5;
 
         // picking the right quarter
-        if (xError < 0) {
-            guessPoint.x = guessPoint.x + xSplit;
-        }
-        else {
-            guessPoint.x = guessPoint.x - xSplit;
-        }
-        if (yError < 0) {
-            guessPoint.y = guessPoint.y + ySplit;
-        }
-        else {
-            guessPoint.y = guessPoint.y - ySplit;
-        }
+        if (xError < 0) guessPoint.x = guessPoint.x + xSplit;
+        else            guessPoint.x = guessPoint.x - xSplit;
+        if (yError < 0) guessPoint.y = guessPoint.y + ySplit;
+        else            guessPoint.y = guessPoint.y - ySplit;
 
         //std::cout << "Pixel: " << pixel << " Guess: " << guessProjection /* << " Error: " << error << " x| " << xError << " y| " << yError*/ << std::endl;
 
@@ -196,6 +185,60 @@ cv::Point FisheyeDewrapper::reverseSarcamuzza(cv::Point pixel)      // Fisheye -
     return guessPoint;
 }
 
+
+/*
+- Pinhole -> 3D coords
+- Calc coef
+- Fisheye -> 3D coords
+*/
+double center = false;
+
+cv::Point2d FisheyeDewrapper::worldToFisheye(cv::Mat worldPoint)
+{
+    double X = worldPoint.at<float>(0);
+    double Y = worldPoint.at<float>(1);
+    double Z = worldPoint.at<float>(2);
+    double phi = atan2(Z, sqrt(X * X + Y * Y));
+    double R = phi;               // R = f(rho)
+    double rho = 0;
+    double error = 1; 
+
+    double tan = Z / sqrt(X * X + Y * Y);
+
+    int iter = 0;
+    do 
+    {
+        //std::cout << "It " << iter << " | Rho: " << rho << " f(Rho): " << R << " Error: " << error << std::endl;
+        R = polynom[0];
+        for (int i = 1; i < polynom.size(); i++)            
+        {
+            R += polynom[i] * pow(rho, i+1);
+            //std::cout << "R: " << R << std::endl;
+        }
+
+        error = atan2(R, rho) - phi;
+        iter++;
+        rho = rho + 200*error;
+    } while (std::abs(error) > 0.005 && iter < 100);
+
+    errorsum += error; 
+    lambda = sqrt(X * X + Y * Y) / rho;
+    double u = X / lambda;      // streth matrix + offset also go here
+    double v = Y / lambda;  
+
+    //u = u * 0.04 + v * 0;
+    //v = u * 0 + v*0.04;
+    //
+    if (center) {
+        std::cout << "Lambda: " << lambda << " U: " << u << " V: " << v << std::endl;
+        center = false; 
+    }
+    if (X == 0 && Y == 0) center = true;
+    
+    cv::Point fypixel(u, v);
+    toCorner(fypixel, newSize);
+    return fypixel;
+}
 
 cv::Mat FisheyeDewrapper::rotatePoint(cv::Mat worldPoint)
 {
@@ -231,11 +274,45 @@ void FisheyeDewrapper::fillMaps(int mode)
     frameBorder.clear();
 
     if (mode == SARCAMUZZA) fillMapsSarcamuzza();
+    if (mode == REV_SARCAMUZZA) fillMapsRevSarcamuzza();
     if (mode == ATAN)       fillMapsAtan();
 
 }
 
 void FisheyeDewrapper::fillMapsSarcamuzza()
+{
+    for (int i = 0; i < newSize.width; i++)
+    {
+        for (int j = 0; j < newSize.height; j++)
+        {
+            cv::Mat worldPoint = projectPinholeToWorld(cv::Point(i, j));
+            worldPoint = rotatePoint(worldPoint);
+            cv::Point distPoint = worldToFisheye(worldPoint);
+
+            if (distPoint.x > oldSize.width - 1 || distPoint.x < 0 ||
+                distPoint.y > oldSize.height - 1 || distPoint.y < 0)
+            {
+                continue;   // skips out of border points
+            }
+
+            // save distorted edge of the frame 
+            if (((j == 0 || j == oldSize.height - 1) && i % 100 == 0) ||
+                ((i == 0 || i == oldSize.width - 1) && j % 100 == 0))
+            {
+                frameBorder.push_back(cv::Point(distPoint.y, distPoint.x));
+            }
+
+            //map1.at<float>(distPoint.x, distPoint.y) =  j;
+            //map2.at<float>(distPoint.x, distPoint.y) =  i;
+            map1.at<float>(i, j) = distPoint.y;
+            map2.at<float>(i, j) = distPoint.x;
+        }
+        if (i % 10 == 0) std::cout << "Collumn N" << i << std::endl;
+    }
+    std::cout << "Avg. error: " << errorsum / (1080 * 1080) << std::endl;       // HACK
+}
+
+void FisheyeDewrapper::fillMapsRevSarcamuzza()
 {
     for (int i = 0; i < oldSize.width; i++)
     {
