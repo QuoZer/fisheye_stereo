@@ -1,17 +1,17 @@
-#include "FisheyeDewrapper.hpp"
+#include "FisheyeDewarper.hpp"
 
-FisheyeDewrapper::FisheyeDewrapper()
+FisheyeDewarper::FisheyeDewarper()
 {
 
 }
 
-void FisheyeDewrapper::createMaps()
+void FisheyeDewarper::createMaps()
 {
     map1 = cv::Mat(oldSize, CV_32FC1, float(0));
     map2 = cv::Mat(oldSize, CV_32FC1, float(0));
 }
 
-void FisheyeDewrapper::setSize(int oldWidth, int oldHeight, int newWidth, int  newHeight, float wideFov)
+void FisheyeDewarper::setSize(int oldWidth, int oldHeight, int newWidth, int  newHeight, float wideFov)
 {
     oldSize.width = oldWidth;
     oldSize.height = oldHeight;
@@ -21,7 +21,7 @@ void FisheyeDewrapper::setSize(int oldWidth, int oldHeight, int newWidth, int  n
     setFovWide(wideFov);
 }
 
-void FisheyeDewrapper::setSize(cv::Size oldsize, cv::Size newsize, float wideFov)
+void FisheyeDewarper::setSize(cv::Size oldsize, cv::Size newsize, float wideFov)
 {
     oldSize = oldsize;
     newSize = newsize;
@@ -29,7 +29,7 @@ void FisheyeDewrapper::setSize(cv::Size oldsize, cv::Size newsize, float wideFov
     setFovWide(wideFov);
 }
 
-void FisheyeDewrapper::setFovWide(float wFov)
+void FisheyeDewarper::setFovWide(float wFov)
 {
     xFov = wFov;
     yFov = wFov * newSize.height / newSize.width;           // * 9/16
@@ -37,7 +37,7 @@ void FisheyeDewrapper::setFovWide(float wFov)
    // std::cout << "FOV, x: " << xFov << " FOV, y: " << yFov << std::endl;
 }
 
-void FisheyeDewrapper::setIntrinsics(double coeffs[4], cv::Vec2d centerOffset, cv::Matx22d stretchMatrix, double scaleFactor)
+void FisheyeDewarper::setIntrinsics(double coeffs[4], cv::Vec2d centerOffset, cv::Matx22d stretchMatrix, double scaleFactor)
 {
     polynom.assign(coeffs, coeffs+4);       // treats both values as pointers 
 
@@ -46,7 +46,7 @@ void FisheyeDewrapper::setIntrinsics(double coeffs[4], cv::Vec2d centerOffset, c
     this->lambda = scaleFactor;
 }
 
-void FisheyeDewrapper::setIntrinsics(double a1, double a2, double a3, double a4, cv::Vec2d centerOffset, cv::Matx22d stretchMatrix, double scaleFactor)
+void FisheyeDewarper::setIntrinsics(double a1, double a2, double a3, double a4, cv::Vec2d centerOffset, cv::Matx22d stretchMatrix, double scaleFactor)
 {
     polynom.clear();
     polynom.push_back(a1);
@@ -59,16 +59,16 @@ void FisheyeDewrapper::setIntrinsics(double a1, double a2, double a3, double a4,
     this->lambda = scaleFactor;
 }
 
-void FisheyeDewrapper::setRpy(float yaw, float pitch, float roll)
+void FisheyeDewarper::setRpy(float yaw, float pitch, float roll)
 {
-    this->yaw = yaw;
-    this->pitch = pitch;
-    this->roll = roll;
+    this->yaw   =    yaw * PI / 180;
+    this->pitch = -pitch * PI / 180;
+    this->roll  =   roll * PI / 180;
 
     // TODO: fillMaps() after angle update. Or should it be handled manually? 
 }
 
-cv::Point2f FisheyeDewrapper::projectWorldToFisheye(cv::Mat worldPoint)
+cv::Point2f FisheyeDewarper::projectWorldToFisheyeAtan(cv::Mat worldPoint)
 {
     float wx = worldPoint.at<float>(0);
     float wy = worldPoint.at<float>(1);
@@ -98,7 +98,7 @@ cv::Point2f FisheyeDewrapper::projectWorldToFisheye(cv::Mat worldPoint)
     return projectionPoint;
 }
 
-cv::Point2f FisheyeDewrapper::projectWorldToPinhole(cv::Mat cameraCoords)
+cv::Point2f FisheyeDewarper::projectWorldToPinhole(cv::Mat cameraCoords)
 {
     double xFovRad = xFov * PI / 180;
     double yFovRad = yFov * PI / 180;
@@ -116,7 +116,7 @@ cv::Point2f FisheyeDewrapper::projectWorldToPinhole(cv::Mat cameraCoords)
     return pinholePoint;
 }
 
-cv::Mat FisheyeDewrapper::projectPinholeToWorld(cv::Point pixel)
+cv::Mat FisheyeDewarper::projectPinholeToWorld(cv::Point pixel)
 {
     toCenter(pixel, oldSize);
 
@@ -134,7 +134,7 @@ cv::Mat FisheyeDewrapper::projectPinholeToWorld(cv::Point pixel)
     return cameraCoords;
 }
 
-cv::Mat FisheyeDewrapper::projectFisheyeToWorld(cv::Point pixel)
+cv::Mat FisheyeDewarper::projectFisheyeToWorld(cv::Point pixel)
 {
     cv::Vec2d undistPixel = stretchMatrix * ( cv::Vec2d(pixel.x, pixel.y) - centerOffset);      // TODO: invert stretchmatrix
     //std::cout << stretchMatrix << " | " << cv::Vec2d(pixel.x, pixel.y) - centerOffset << " | " << lambda * undistPixel[0] << std::endl;
@@ -147,7 +147,7 @@ cv::Mat FisheyeDewrapper::projectFisheyeToWorld(cv::Point pixel)
     return rotatePoint(cameraCoords);
 }
 
-cv::Point FisheyeDewrapper::reverseSarcamuzza(cv::Point pixel)      // Fisheye -> Pinhole
+cv::Point FisheyeDewarper::reverseScaramuzza(cv::Point pixel)      // Fisheye -> Pinhole
 {
     // converting corner coordinates to the center ones
     toCenter(pixel, newSize);
@@ -186,30 +186,19 @@ cv::Point FisheyeDewrapper::reverseSarcamuzza(cv::Point pixel)      // Fisheye -
 }
 
 
-/*
-- Pinhole -> 3D coords
-- Calc coef
-- Fisheye -> 3D coords
-*/
-double center = false;
-
-cv::Point2d FisheyeDewrapper::worldToFisheye(cv::Mat worldPoint)
+cv::Point2d FisheyeDewarper::projectWorldToFisheye(cv::Mat worldPoint)
 {
     double X = worldPoint.at<float>(0);
     double Y = worldPoint.at<float>(1);
     double Z = worldPoint.at<float>(2);
     double phi = atan2(Z, sqrt(X * X + Y * Y));
-    double R = phi;               // R = f(rho)
     double rho = 0;
     double error = 1; 
-
-    double tan = Z / sqrt(X * X + Y * Y);
 
     int iter = 0;
     do 
     {
-        //std::cout << "It " << iter << " | Rho: " << rho << " f(Rho): " << R << " Error: " << error << std::endl;
-        R = polynom[0];
+        double R = polynom[0];      // R = f(rho)
         for (int i = 1; i < polynom.size(); i++)            
         {
             R += polynom[i] * pow(rho, i+1);
@@ -219,6 +208,7 @@ cv::Point2d FisheyeDewrapper::worldToFisheye(cv::Mat worldPoint)
         error = atan2(R, rho) - phi;
         iter++;
         rho = rho + 200*error;
+        //std::cout << "It " << iter << " Point: " << worldPoint << " | Rho: " << rho << " f(Rho): " << 424242 << " Error: " << error << std::endl;
     } while (std::abs(error) > 0.005 && iter < 100);
 
     errorsum += error; 
@@ -229,18 +219,13 @@ cv::Point2d FisheyeDewrapper::worldToFisheye(cv::Mat worldPoint)
     //u = u * 0.04 + v * 0;
     //v = u * 0 + v*0.04;
     //
-    if (center) {
-        std::cout << "Lambda: " << lambda << " U: " << u << " V: " << v << std::endl;
-        center = false; 
-    }
-    if (X == 0 && Y == 0) center = true;
     
     cv::Point fypixel(u, v);
     toCorner(fypixel, newSize);
     return fypixel;
 }
 
-cv::Mat FisheyeDewrapper::rotatePoint(cv::Mat worldPoint)
+cv::Mat FisheyeDewarper::rotatePoint(cv::Mat worldPoint)
 {
     cv::Mat rotZ(cv::Matx33f(1, 0, 0,
         0, cos(yaw), sin(yaw),
@@ -251,35 +236,35 @@ cv::Mat FisheyeDewrapper::rotatePoint(cv::Mat worldPoint)
     cv::Mat rotY(cv::Matx33f(cos(roll), -sin(roll), 0,      
         sin(roll), cos(roll), 0,
         0, 0, 1));
-    return worldPoint * rotY * rotX * rotZ;
+    return worldPoint * rotY * rotZ * rotX;         // calib3d/utils  proposes this order
 }
 
 // converting corner coordinates to the center ones
-void FisheyeDewrapper::toCenter(cv::Point& cornerPixel, cv::Size imagesize)
+void FisheyeDewarper::toCenter(cv::Point& cornerPixel, cv::Size imagesize)
 {
     cornerPixel.x = cornerPixel.x - imagesize.width / 2;
     cornerPixel.y = -cornerPixel.y + imagesize.height / 2;
 }
 
 // converting center coordinates to the corner ones
-void FisheyeDewrapper::toCorner(cv::Point& centerPixel, cv::Size imagesize)
+void FisheyeDewarper::toCorner(cv::Point& centerPixel, cv::Size imagesize)
 {
     centerPixel.x =  centerPixel.x + imagesize.width / 2;
     centerPixel.y = -centerPixel.y + imagesize.height / 2;
 }
 
-void FisheyeDewrapper::fillMaps(int mode)
+void FisheyeDewarper::fillMaps(int mode)
 {
     createMaps();
     frameBorder.clear();
 
-    if (mode == SARCAMUZZA) fillMapsSarcamuzza();
-    if (mode == REV_SARCAMUZZA) fillMapsRevSarcamuzza();
+    if (mode == SCARAMUZZA) fillMapsScaramuzza();
+    if (mode == REV_SCARAMUZZA) fillMapsRevScaramuzza();
     if (mode == ATAN)       fillMapsAtan();
 
 }
 
-void FisheyeDewrapper::fillMapsSarcamuzza()
+void FisheyeDewarper::fillMapsScaramuzza()
 {
     for (int i = 0; i < newSize.width; i++)
     {
@@ -287,7 +272,7 @@ void FisheyeDewrapper::fillMapsSarcamuzza()
         {
             cv::Mat worldPoint = projectPinholeToWorld(cv::Point(i, j));
             worldPoint = rotatePoint(worldPoint);
-            cv::Point distPoint = worldToFisheye(worldPoint);
+            cv::Point distPoint = projectWorldToFisheye(worldPoint);
 
             if (distPoint.x > oldSize.width - 1 || distPoint.x < 0 ||
                 distPoint.y > oldSize.height - 1 || distPoint.y < 0)
@@ -307,18 +292,18 @@ void FisheyeDewrapper::fillMapsSarcamuzza()
             map1.at<float>(i, j) = distPoint.y;
             map2.at<float>(i, j) = distPoint.x;
         }
-        if (i % 10 == 0) std::cout << "Collumn N" << i << std::endl;
+        if (i % 100 == 0) std::cout << "Collumn N" << i << std::endl;
     }
     std::cout << "Avg. error: " << errorsum / (1080 * 1080) << std::endl;       // HACK
 }
 
-void FisheyeDewrapper::fillMapsRevSarcamuzza()
+void FisheyeDewarper::fillMapsRevScaramuzza()
 {
     for (int i = 0; i < oldSize.width; i++)
     {
         for (int j = 0; j < oldSize.height; j++)
         {
-            cv::Point distPoint = reverseSarcamuzza(cv::Point(i, j));
+            cv::Point distPoint = reverseScaramuzza(cv::Point(i, j));
 
             if (distPoint.x > newSize.width - 1 || distPoint.x < 0 ||
                 distPoint.y > newSize.height - 1 || distPoint.y < 0)
@@ -341,7 +326,7 @@ void FisheyeDewrapper::fillMapsRevSarcamuzza()
     std::cout << "Avg. error: " << errorsum / (1080 * 1080) << std::endl;       // HACK
 }
 
-void FisheyeDewrapper::fillMapsAtan()
+void FisheyeDewarper::fillMapsAtan()
 {
     for (int i = 0; i < newSize.width; i++)
     {
@@ -368,7 +353,7 @@ void FisheyeDewrapper::fillMapsAtan()
     }
 }
 
-cv::Mat FisheyeDewrapper::dewrapImage(cv::Mat inputImage)
+cv::Mat FisheyeDewarper::dewrapImage(cv::Mat inputImage)
 {
     cv::Mat remapped(newSize, CV_8UC3, cv::Scalar(0, 0, 0));
     cv::remap(inputImage, remapped, map1, map2, cv::INTER_CUBIC, cv::BORDER_CONSTANT);

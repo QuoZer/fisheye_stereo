@@ -1,1 +1,1 @@
-.\build\Release\dewrapper.exe -w=9 -h=6 -pt=chessboard ..\data\stereo_img\stereo_list.xml
+.\build\Release\dewarper.exe -w=9 -h=6 -pt=chessboard ..\data\stereo_img\stereo_list.xml
