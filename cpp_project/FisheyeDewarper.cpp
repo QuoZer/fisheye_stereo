@@ -210,17 +210,13 @@ cv::Point2d FisheyeDewarper::projectWorldToFisheye(cv::Mat worldPoint)
         rho = rho + 200*error;
         //std::cout << "It " << iter << " Point: " << worldPoint << " | Rho: " << rho << " f(Rho): " << 424242 << " Error: " << error << std::endl;
     } while (std::abs(error) > 0.005 && iter < 100);
-
     errorsum += error; 
+
     lambda = sqrt(X * X + Y * Y) / rho;
     double u = X / lambda;      // streth matrix + offset also go here
-    double v = Y / lambda;  
+    double v = Y / lambda; 
 
-    //u = u * 0.04 + v * 0;
-    //v = u * 0 + v*0.04;
-    //
-    
-    cv::Point fypixel(u, v);
+    cv::Point fypixel( stretchMatrix * cv::Vec2d(u, v) + centerOffset );        // technically could do toCorner's job, but I'll keep it simple for now
     toCorner(fypixel, newSize);
     return fypixel;
 }
@@ -228,14 +224,14 @@ cv::Point2d FisheyeDewarper::projectWorldToFisheye(cv::Mat worldPoint)
 cv::Mat FisheyeDewarper::rotatePoint(cv::Mat worldPoint)
 {
     cv::Mat rotZ(cv::Matx33f(1, 0, 0,
-        0, cos(yaw), sin(yaw),
-        0, -sin(yaw), cos(yaw)));       
+                             0, cos(yaw), sin(yaw),
+                             0, -sin(yaw), cos(yaw)));       
     cv::Mat rotX(cv::Matx33f(cos(pitch), 0, -sin(pitch),
-        0, 1, 0,                        
-        sin(pitch), 0, cos(pitch)));
+                             0, 1, 0,                        
+                             sin(pitch), 0, cos(pitch)));
     cv::Mat rotY(cv::Matx33f(cos(roll), -sin(roll), 0,      
-        sin(roll), cos(roll), 0,
-        0, 0, 1));
+                             sin(roll), cos(roll), 0,
+                             0, 0, 1));
     return worldPoint * rotY * rotZ * rotX;         // calib3d/utils  proposes this order
 }
 
@@ -294,7 +290,7 @@ void FisheyeDewarper::fillMapsScaramuzza()
         }
         if (i % 100 == 0) std::cout << "Collumn N" << i << std::endl;
     }
-    std::cout << "Avg. error: " << errorsum / (1080 * 1080) << std::endl;       // HACK
+    std::cout << "Avg. error: " << errorsum / (newSize.area()) << std::endl;      
 }
 
 void FisheyeDewarper::fillMapsRevScaramuzza()

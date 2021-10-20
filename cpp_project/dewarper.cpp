@@ -200,10 +200,10 @@ int main(int argc, char** argv)
     vector<Point> grid;                   // vectors of grid points
     vector<Point> gridDist;
 
-    FisheyeDewarper dewrapper;
-    dewrapper.setIntrinsics( 350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9), cv::Vec2d(0, 0), cv::Matx22d(1, 0, 0, 1), 0.022 );
-    dewrapper.setSize(origSize, newSize, 90);
-    dewrapper.setRpy(0, 0, 0);
+    FisheyeDewarper dewarper;
+    dewarper.setIntrinsics( 350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9), cv::Vec2d(0, 0), cv::Matx22d(1, 0, 0, 1), 0.022 );
+    dewarper.setSize(origSize, newSize, 90);
+    dewarper.setRpy(0, 0, 0);
 
 
     while(true)         //  iterate through images       
@@ -214,7 +214,7 @@ int main(int argc, char** argv)
 
         if (recalcFlag){
                                                        
-            dewrapper.fillMaps(SCARAMUZZA);                      // fill new maps with current parameters. 
+            dewarper.fillMaps(SCARAMUZZA);                      // fill new maps with current parameters. 
             cout << "Maps ready" << endl;
 
             recalcFlag = false;
@@ -222,10 +222,10 @@ int main(int argc, char** argv)
 
         Mat leftImageRemapped(newSize, CV_8UC3, Scalar(0, 0, 0));
         Mat rightImageRemapped(newSize, CV_8UC3, Scalar(0, 0, 0));
-        leftImageRemapped = dewrapper.dewrapImage(left);
-        rightImageRemapped = dewrapper.dewrapImage(right);
+        leftImageRemapped = dewarper.dewrapImage(left);
+        rightImageRemapped = dewarper.dewrapImage(right);
         
-        bool textPut = false;
+        bool textPut = true;
         // draw grid
         for each (Point center in gridDist)
         {
