@@ -9,7 +9,9 @@ project( fisheye_stereo )
 find_package( OpenCV REQUIRED )
 include_directories( ${OpenCV_INCLUDE_DIRS} )
 
-add_executable( dewarper dewarper.cpp FisheyeDewarper.cpp FisheyeDewarper.hpp)
+add_executable( dewarper dewarper.cpp 
+		FisheyeDewarper.cpp FisheyeDewarper.hpp
+		CamDesc.cpp CamDesc.hpp)
 target_link_libraries( dewarper ${OpenCV_LIBS} )
 
 add_compile_options(/D_USE_MATH_DEFINES)

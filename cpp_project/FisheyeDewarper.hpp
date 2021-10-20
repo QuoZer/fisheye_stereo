@@ -11,7 +11,8 @@
 #define REV_SCARAMUZZA	30
 
 /* TODO: -Constructor, 
-		 -Universal fillMap for different models	*/
+		 -
+*/
 
 class FisheyeDewarper
 {
@@ -36,7 +37,7 @@ private:	/* Data */
 	/* Structures */
 	cv::Mat map1;   // x map
 	cv::Mat map2;   // y map
-	std::vector<cv::Point> frameBorder; //border to draw on original image 
+	std::vector<cv::Point> frameBorder; //border to draw on the original image 
 
 private:	/* Internal functions */
 	void createMaps();

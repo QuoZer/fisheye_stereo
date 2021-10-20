@@ -136,7 +136,7 @@ cv::Mat FisheyeDewarper::projectPinholeToWorld(cv::Point pixel)
 
 cv::Mat FisheyeDewarper::projectFisheyeToWorld(cv::Point pixel)
 {
-    cv::Vec2d undistPixel = stretchMatrix * ( cv::Vec2d(pixel.x, pixel.y) - centerOffset);      // TODO: invert stretchmatrix
+    cv::Vec2d undistPixel = stretchMatrix * ( cv::Vec2d(pixel.x, pixel.y) - centerOffset);      // TODO: delete
     //std::cout << stretchMatrix << " | " << cv::Vec2d(pixel.x, pixel.y) - centerOffset << " | " << lambda * undistPixel[0] << std::endl;
     cv::Mat cameraCoords(1, 3, CV_32F, float(0));
     double rho = norm(pixel);      // sqrt ( x^2 + y^2 )
