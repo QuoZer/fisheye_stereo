@@ -30,18 +30,18 @@ private:	/* Parameters */
 private:	/* Data */
 	double errorsum;
 	/* Intrinsics */
-	std::vector <double> polynom;					// Scaramuzza model coefficients
+	std::vector <double> polynom;		// Scaramuzza model coefficients
 	cv::Vec2d centerOffset;				// Distortion center
-	cv::Matx22d stretchMatrix;			// Whatever that is in the stretch matrix
+	cv::Matx22d stretchMatrix;			// Stretch matrix
 	double lambda;						// Scale factor 
 	/* Structures */
-	cv::Mat map1;   // x map
-	cv::Mat map2;   // y map
+	cv::Mat map1;						// x map
+	cv::Mat map2;						// y map
 	std::vector<cv::Point> frameBorder; //border to draw on the original image 
 
 private:	/* Internal functions */
 	void createMaps();
-	/*  */
+	/* Transformations */
 	void toCenter(cv::Point& cornerPixel, cv::Size imagesize);
 	void toCorner(cv::Point& centerPixel, cv::Size imagesize);
 	cv::Mat rotatePoint(cv::Mat worldPoint);
@@ -52,7 +52,7 @@ private:	/* Internal functions */
 	cv::Mat projectFisheyeToWorld(cv::Point pixel);
 	cv::Mat projectPinholeToWorld(cv::Point pixel);
 	cv::Point reverseScaramuzza(cv::Point pixel);	// Fisheye to Pinhole 
-	/*  */
+	/* Tools */
 	void fillMapsScaramuzza();
 	void fillMapsRevScaramuzza();
 	void fillMapsAtan();
