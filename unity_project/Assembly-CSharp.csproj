@@ -9,7 +9,7 @@
     <ProductVersion>10.0.20506</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <RootNamespace></RootNamespace>
-    <ProjectGuid>{BED0C178-74C3-CEB4-EDED-4D2E2B25A74B}</ProjectGuid>
+    <ProjectGuid>{86B588A5-6AF9-792A-0A8D-34EA7C959619}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <AssemblyName>Assembly-CSharp</AssemblyName>
@@ -77,31 +77,31 @@
     <None Include="Assets\RenderFisheye.shader" />
     <None Include="Assets\Unity Data Dome Package\DomeProjection\Resources\DomeProjection.shader" />
     <Reference Include="Unity.Timeline.Editor">
-      <HintPath>D:/Work/Coding/Repos/RTC_Practice/rtc_cvpractice/Unity_project/OCV_integration_test/Library/ScriptAssemblies/Unity.Timeline.Editor.dll</HintPath>
+      <HintPath>D:/Work/Coding/Repos/RTC_Practice/fisheye_stereo/unity_project/Library/ScriptAssemblies/Unity.Timeline.Editor.dll</HintPath>
     </Reference>
     <Reference Include="Unity.VSCode.Editor">
-      <HintPath>D:/Work/Coding/Repos/RTC_Practice/rtc_cvpractice/Unity_project/OCV_integration_test/Library/ScriptAssemblies/Unity.VSCode.Editor.dll</HintPath>
+      <HintPath>D:/Work/Coding/Repos/RTC_Practice/fisheye_stereo/unity_project/Library/ScriptAssemblies/Unity.VSCode.Editor.dll</HintPath>
     </Reference>
     <Reference Include="Unity.TextMeshPro.Editor">
-      <HintPath>D:/Work/Coding/Repos/RTC_Practice/rtc_cvpractice/Unity_project/OCV_integration_test/Library/ScriptAssemblies/Unity.TextMeshPro.Editor.dll</HintPath>
+      <HintPath>D:/Work/Coding/Repos/RTC_Practice/fisheye_stereo/unity_project/Library/ScriptAssemblies/Unity.TextMeshPro.Editor.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.UI">
-      <HintPath>D:/Work/Coding/Repos/RTC_Practice/rtc_cvpractice/Unity_project/OCV_integration_test/Library/ScriptAssemblies/UnityEngine.UI.dll</HintPath>
+      <HintPath>D:/Work/Coding/Repos/RTC_Practice/fisheye_stereo/unity_project/Library/ScriptAssemblies/UnityEngine.UI.dll</HintPath>
     </Reference>
     <Reference Include="Unity.Timeline">
-      <HintPath>D:/Work/Coding/Repos/RTC_Practice/rtc_cvpractice/Unity_project/OCV_integration_test/Library/ScriptAssemblies/Unity.Timeline.dll</HintPath>
+      <HintPath>D:/Work/Coding/Repos/RTC_Practice/fisheye_stereo/unity_project/Library/ScriptAssemblies/Unity.Timeline.dll</HintPath>
     </Reference>
     <Reference Include="Unity.CollabProxy.Editor">
-      <HintPath>D:/Work/Coding/Repos/RTC_Practice/rtc_cvpractice/Unity_project/OCV_integration_test/Library/ScriptAssemblies/Unity.CollabProxy.Editor.dll</HintPath>
+      <HintPath>D:/Work/Coding/Repos/RTC_Practice/fisheye_stereo/unity_project/Library/ScriptAssemblies/Unity.CollabProxy.Editor.dll</HintPath>
     </Reference>
     <Reference Include="Unity.Rider.Editor">
-      <HintPath>D:/Work/Coding/Repos/RTC_Practice/rtc_cvpractice/Unity_project/OCV_integration_test/Library/ScriptAssemblies/Unity.Rider.Editor.dll</HintPath>
+      <HintPath>D:/Work/Coding/Repos/RTC_Practice/fisheye_stereo/unity_project/Library/ScriptAssemblies/Unity.Rider.Editor.dll</HintPath>
     </Reference>
     <Reference Include="Unity.TextMeshPro">
-      <HintPath>D:/Work/Coding/Repos/RTC_Practice/rtc_cvpractice/Unity_project/OCV_integration_test/Library/ScriptAssemblies/Unity.TextMeshPro.dll</HintPath>
+      <HintPath>D:/Work/Coding/Repos/RTC_Practice/fisheye_stereo/unity_project/Library/ScriptAssemblies/Unity.TextMeshPro.dll</HintPath>
     </Reference>
     <Reference Include="UnityEditor.UI">
-      <HintPath>D:/Work/Coding/Repos/RTC_Practice/rtc_cvpractice/Unity_project/OCV_integration_test/Library/ScriptAssemblies/UnityEditor.UI.dll</HintPath>
+      <HintPath>D:/Work/Coding/Repos/RTC_Practice/fisheye_stereo/unity_project/Library/ScriptAssemblies/UnityEditor.UI.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.AIModule">
       <HintPath>H:/RTC/Practice/Unity/Editor/Data/Managed/UnityEngine/UnityEngine.AIModule.dll</HintPath>

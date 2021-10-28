@@ -36,6 +36,7 @@ extern "C"
     __declspec(dllexport) int getImages(Color32** raw, int width, int height, int numOfImg, bool isShow, FilterValues filter);
     __declspec(dllexport) void processImage(unsigned char* data, int width, int height);
     __declspec(dllexport) int takeScreenshot(Color32** raw, int width, int height, int numOfCam, bool isShow);
+    __declspec(dllexport) int takeStereoScreenshot(Color32** raw, int width, int height, int numOfCam1, int numOfCam2, bool isShow);
 
 	cv::Mat colorFilter(const cv::Mat& src, FilterValues filter);
 }

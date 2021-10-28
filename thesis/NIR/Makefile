@@ -1,4 +1,4 @@
-all: build pdf
+all: build
 
 build:
 	latexmk -xelatex \

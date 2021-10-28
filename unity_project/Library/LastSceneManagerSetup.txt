@@ -1,5 +1,5 @@
 sceneSetups:
-- path: Assets/Scenes/SampleScene.unity
+- path: Assets/Low_Poly_Mini_Village/Demo_scene/Demo.unity
   isLoaded: 1
   isActive: 1
   isSubScene: 0

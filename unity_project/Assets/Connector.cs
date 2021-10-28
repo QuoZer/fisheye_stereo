@@ -140,13 +140,14 @@ public class Connector : MonoBehaviour
         Color32[] rawColor2 = raw2.GetPixels32();
 
         Color32*[] rawColors = new Color32*[2];
-
+        /*
         filter.HLow = (byte)HLow.value;
         filter.HHigh = (byte)HHigh.value;
         filter.SLow = (byte)SLow.value;
         filter.SHigh = (byte)SHigh.value;
         filter.VLow = (byte)VLow.value;
         filter.VHigh = (byte)VHigh.value;
+        */
 
     fixed (Color32* p1 = rawColor1, p2 = rawColor2)
         {
@@ -178,7 +179,8 @@ public class Connector : MonoBehaviour
             rawColors[1] = p2;
             fixed (Color32** pointer = rawColors)
             {
-                takeScreenshot((IntPtr)pointer, width, height, numOfCam, show);   
+                //takeScreenshot((IntPtr)pointer, width, height, numOfCam, show);
+                takeStereoScreenshot((IntPtr)pointer, width, height, 0, 1, show);
             }
         }
 
@@ -244,6 +246,9 @@ public class Connector : MonoBehaviour
 
     [DllImport("unity_plugin", EntryPoint = "takeScreenshot")]
     unsafe private static extern int takeScreenshot(IntPtr raw, int width, int height, int numOfCam, bool isShow);
+
+    [DllImport("unity_plugin", EntryPoint = "takeStereoScreenshot")]
+    unsafe private static extern int takeStereoScreenshot(IntPtr raw, int width, int height, int numOfCam1, int numOfCam2, bool isShow);
 
     [DllImport("unity_plugin", EntryPoint = "AllocConsole")]
     private static extern bool AllocConsole();

@@ -1,10 +1,11 @@
-// surroundView.cpp: определяет экспортированные функции для приложения DLL.
+// surroundView.cpp: пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ DLL.
 
 //#include "stdafx.h"
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/ocl.hpp>
 #include "surroundView.h"
 #include <string>
+#include "../cpp_project/FisheyeDewarper.cpp"
 
 using namespace std;
 
@@ -27,6 +28,8 @@ extern "C"
     bool isShowed = false;
 
     cv::Mat output;
+
+    FisheyeDewarper left_dewarper;      // dewarper library object
 
     int initialize(int width, int height, int numOfImg)
     {
@@ -68,6 +71,11 @@ extern "C"
         {
             rawData.push_back(0);
         }
+        //  Old ones 350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9)
+        left_dewarper.setIntrinsics(229.3778, -0.0016, 9.737 * pow(10, -7), -4.2154 * pow(10, -9), cv::Vec2d(0, 0), cv::Matx22d(1, 0, 0, 1), 0.022);
+        left_dewarper.setSize(cv::Size(1080, 1080), cv::Size(1080, 1080), 90);
+        left_dewarper.setRpy(0, 0, 0);
+        left_dewarper.fillMaps(SCARAMUZZA);
 
         return 0;
     }
@@ -80,12 +88,42 @@ extern "C"
         cvtColor(sceen, sceen, cv::COLOR_BGRA2RGB);
         flip(sceen, sceen, 0);
         screenIndex++;
-        string path = "D:/Work/Coding/Repos/RTC_Practice/rtc_cvpractice/datasets/unity_chess/unity" + to_string(screenIndex) + "_shot.jpg";
+        string path = "D:/Work/Coding/Repos/RTC_Practice/fisheye_stereo/data/stereo_img/" + to_string(screenIndex) + "_shot.jpg";
         cv::imwrite(path, sceen);
 
         if (isShow)
         {
             imshow("OpenCV Screenshot", sceen);
+        }
+
+        return 0;
+    }
+
+    int takeStereoScreenshot(Color32** raw, int width, int height, int numOfCam1, int numOfCam2, bool isShow)
+    {
+        cv::Mat stereo = cv::Mat(height, 2 * width, CV_8UC4, cv::Scalar(0, 0, 0));
+        cv::Mat cam1 = cv::Mat(height, width, CV_8UC4, raw[numOfCam1]);
+        cv::Mat cam2 = cv::Mat(height, width, CV_8UC4, raw[numOfCam2]);
+
+        cvtColor(cam1, cam1, cv::COLOR_BGRA2RGB);
+        flip(cam1, cam1, 0);
+        cvtColor(cam2, cam2, cv::COLOR_BGRA2RGB);
+        flip(cam2, cam2, 0);
+
+        //cv::hconcat(cam1, cam2, stereo);        // horizontal concatation
+        //cam1.copyTo(stereo(cv::Rect(0, 0, width, height)));
+        //cam2.copyTo(stereo(cv::Rect(width, 0, width, height)));
+
+        screenIndex++;
+        //      hardcoded image path((((
+        string left_path = "D:/Work/Coding/Repos/RTC_Practice/fisheye_stereo/data/stereo_img/l" + to_string(screenIndex) + "_shot.jpg";
+        string right_path = "D:/Work/Coding/Repos/RTC_Practice/fisheye_stereo/data/stereo_img/r" + to_string(screenIndex) + "_shot.jpg";
+        cv::imwrite(left_path, left_dewarper.dewrapImage(cam1));
+        cv::imwrite(right_path, left_dewarper.dewrapImage(cam2));
+
+        if (isShow)
+        {
+            imshow("OpenCV Screenshot", cam1);
         }
 
         return 0;
@@ -108,10 +146,10 @@ extern "C"
                 flip(frames[i], frames[i], 0);
                 
             }
-            frames[0] = colorFilter(frames[0], filter); // find spheres and print their coordinates
+            //frames[0] = colorFilter(frames[0], filter); // find spheres and print their coordinates
 
             UndistortFY(frames[1], frames[1]);          // undistort 
-            frames[1] = colorFilter(frames[1], filter); // find spheres on undistorted
+            //frames[1] = colorFilter(frames[1], filter); // find spheres on undistorted
             /*
             cv::Mat hsvimg;
             cvtColor(frames[1], hsvimg, cv::COLOR_BGR2HSV);
@@ -246,19 +284,7 @@ string findCoordinates(const cv::Mat& binaryImage, const cv::Mat& imageToDrawOn,
 
 void UndistortFY(cv::Mat& in, cv::Mat& undistorted)
 {
-    dewrapper(in, undistorted);
-    return;                         // erase for 'honest' undistortion        // TODO: create a way to switch between undistortion models
-
-    cv::Mat K = (cv::Mat_<double>(3, 3) << 286.47, 0, 516.37,
-                                            0, 397.046, 544.712,
-                                            0, 0, 1);      // MATLAB undistort values 
-    cv::Mat D = (cv::Mat_<double>(1, 4) << -0.166, 2.129, -3.937, 2.365);
-    cv::Size new_size = in.size() * 1;
-    cv::Mat Knew = cv::Mat(cv::Matx33f(new_size.width / 4, 0, new_size.width / 2,
-                                        0, new_size.height / 4, new_size.height / 2,
-                                        0, 0, 1));
-
-    cv::fisheye::undistortImage(in, undistorted, K, D, Knew, new_size);
+    undistorted = left_dewarper.dewrapImage(in); //
 }
 
 
@@ -297,7 +323,7 @@ cv::Point2f getInputPoint(int x, int y, int srcwidth, int srcheight)
     return pfish;
 }
 
-
+// junk
 void dewrapper(cv::Mat input, cv::Mat& outImagePtr)
 {
     cv::Mat outImage(input.rows, input.cols, CV_8UC3);
