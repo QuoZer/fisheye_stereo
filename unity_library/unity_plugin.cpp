@@ -74,7 +74,7 @@ extern "C"
         //  Old ones 350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9)
         left_dewarper.setIntrinsics(229.3778, -0.0016, 9.737 * pow(10, -7), -4.2154 * pow(10, -9), cv::Vec2d(0, 0), cv::Matx22d(1, 0, 0, 1), 0.022);
         left_dewarper.setSize(cv::Size(1080, 1080), cv::Size(1080, 1080), 90);
-        left_dewarper.setRpy(0, 0, 0);
+        left_dewarper.setRpy(-45, 0, 0);
         left_dewarper.fillMaps(SCARAMUZZA);
 
         return 0;
