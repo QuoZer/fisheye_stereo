@@ -30,6 +30,7 @@ extern "C"
     cv::Mat output;
 
     FisheyeDewarper left_dewarper;      // dewarper library object
+    FisheyeDewarper right_dewarper;
 
     int initialize(int width, int height, int numOfImg)
     {
@@ -71,11 +72,16 @@ extern "C"
         {
             rawData.push_back(0);
         }
-        //  Old ones 350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9)
-        left_dewarper.setIntrinsics(229.3778, -0.0016, 9.737 * pow(10, -7), -4.2154 * pow(10, -9), cv::Vec2d(0, 0), cv::Matx22d(1, 0, 0, 1), 0.022);
+        //  Old ones (180 deg) 350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9)
+        left_dewarper.setIntrinsics(229.3778, -0.0016, 9.737 * pow(10, -7), -4.2154 * pow(10, -9), cv::Vec2d(0, 0), cv::Matx22d(1, 0, 0, 1), 0.022);        // 270 deg coefs
         left_dewarper.setSize(cv::Size(1080, 1080), cv::Size(1080, 1080), 90);
-        left_dewarper.setRpy(-45, 0, 0);
+        left_dewarper.setRpy(45, 0, 0);
         left_dewarper.fillMaps(SCARAMUZZA);
+
+        right_dewarper.setIntrinsics(229.3778, -0.0016, 9.737 * pow(10, -7), -4.2154 * pow(10, -9), cv::Vec2d(0, 0), cv::Matx22d(1, 0, 0, 1), 0.022);
+        right_dewarper.setSize(cv::Size(1080, 1080), cv::Size(1080, 1080), 90);
+        right_dewarper.setRpy(-45, 0, 0);
+        right_dewarper.fillMaps(SCARAMUZZA);
 
         return 0;
     }
@@ -118,8 +124,9 @@ extern "C"
         //      hardcoded image path((((
         string left_path = "D:/Work/Coding/Repos/RTC_Practice/fisheye_stereo/data/stereo_img/l" + to_string(screenIndex) + "_shot.jpg";
         string right_path = "D:/Work/Coding/Repos/RTC_Practice/fisheye_stereo/data/stereo_img/r" + to_string(screenIndex) + "_shot.jpg";
+
         cv::imwrite(left_path, left_dewarper.dewrapImage(cam1));
-        cv::imwrite(right_path, left_dewarper.dewrapImage(cam2));
+        cv::imwrite(right_path, right_dewarper.dewrapImage(cam2));
 
         if (isShow)
         {
@@ -148,7 +155,7 @@ extern "C"
             }
             //frames[0] = colorFilter(frames[0], filter); // find spheres and print their coordinates
 
-            UndistortFY(frames[1], frames[1]);          // undistort 
+            UndistortFY(frames[0], frames[0]);          // undistort 
             //frames[1] = colorFilter(frames[1], filter); // find spheres on undistorted
             /*
             cv::Mat hsvimg;
@@ -279,7 +286,7 @@ string findCoordinates(const cv::Mat& binaryImage, const cv::Mat& imageToDrawOn,
     //mc[0].x = mc[0].x - x0;     // applying offset AFTER drawing circles
     //mc[0].y = mc[0].y - y0;
     
-    return angles;          // TODO: find out what's wrong with <Point>
+    return angles;          
 }
 
 void UndistortFY(cv::Mat& in, cv::Mat& undistorted)

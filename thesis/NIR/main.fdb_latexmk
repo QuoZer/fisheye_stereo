@@ -1,9 +1,17 @@
 # Fdb version 3
-["xdvipdfmx"] 1634936591 "main.xdv" "main.pdf" "main" 1634936591
-  "main.xdv" 1634936591 1656 ed6ecc2aa4504aac14c0f8a45cca1690 "xelatex"
+["bibtex main"] 1636058211 "main.aux" "main.bbl" "main" 1636058215
+  "D:/Work/TexEditor/MIKTEX/bibtex/bst/bibtex/plain.bst" 1291864736 20613 bd3fbfa9f64872b81ac57a0dd2ed855f ""
+  "include/intro.aux" 1636058214 882 5db4e7af5fa20c3996fe9f40e0d1e404 "xelatex"
+  "main.aux" 1636058214 924 ae671bbebe032f27a9b2884b51fcd81d "xelatex"
+  "refs.bib" 1636056932 1365 76174e2eefaeab0089f54095fdb6c6e8 ""
+  (generated)
+  "main.bbl"
+  "main.blg"
+["xdvipdfmx"] 1636058215 "main.xdv" "main.pdf" "main" 1636058215
+  "main.xdv" 1636058214 16192 5a814e953ec9ac2f5df9d74cb4c37c68 "xelatex"
   (generated)
   "main.pdf"
-["xelatex"] 1634936587 "main.tex" "main.xdv" "main" 1634936591
+["xelatex"] 1636058211 "main.tex" "main.xdv" "main" 1636058215
   "C:/Users/Matvey/AppData/Local/MiKTeX/miktex/data/le/xetex/xelatex.fmt" 1634936112 23134324 48900606bc7117403c58c9cff1323883 ""
   "C:/Users/Matvey/AppData/Roaming/MiKTeX/tex/generic/atbegshi/atbegshi.sty" 1575571100 24708 5584a51a7101caf7e6bbf1fc27d8f7b1 ""
   "C:/Users/Matvey/AppData/Roaming/MiKTeX/tex/generic/bigintcalc/bigintcalc.sty" 1576433602 40635 c40361e206be584d448876bba8a64a3b ""
@@ -110,14 +118,18 @@
   "D:/Work/TexEditor/MIKTEX/tex/latex/url/url.sty" 1388490452 12796 8edb7d69a20b857904dd0ea757c14ec9 ""
   "D:/Work/TexEditor/MIKTEX/tex/latex/xcolor/xcolor.sty" 1623005660 55589 34128738f682d033422ca125f82e5d62 ""
   "D:/Work/TexEditor/MIKTEX/tex/latex/xkeyval/xkeyval.sty" 1623005690 4902 efb3d66683a2da2a232f71e3a571a899 ""
+  "include/intro.aux" 1636058214 882 5db4e7af5fa20c3996fe9f40e0d1e404 "xelatex"
+  "include/intro.tex" 1636058195 2239 8b5d47aa4516344d9afc51f618b5ce57 ""
   "include/preamble.tex" 1634936506 8717 3905bf849316460c7377e595e7b32426 ""
-  "main.aux" 1634936591 840 af8a20e3c0dcf42d07124c2ad42e7cc0 "xelatex"
-  "main.out" 1634936591 0 d41d8cd98f00b204e9800998ecf8427e "xelatex"
-  "main.tex" 1634753743 646 ff2870d2aedb3e60caf9624d9b6ca42a ""
-  "main.toc" 1634936591 27 bc7c4e796595b65072e025d9ec96c7ff "xelatex"
+  "main.aux" 1636058214 924 ae671bbebe032f27a9b2884b51fcd81d "xelatex"
+  "main.bbl" 1636058211 250 60941ef4d27679b9a1baca5d4370df91 "bibtex main"
+  "main.out" 1636058214 0 d41d8cd98f00b204e9800998ecf8427e "xelatex"
+  "main.tex" 1636058195 727 fb9491b732715556b21674dddeb0b738 ""
+  "main.toc" 1636058214 27 bc7c4e796595b65072e025d9ec96c7ff "xelatex"
   (generated)
-  "main.out"
-  "main.aux"
   "main.log"
   "main.toc"
+  "main.aux"
   "main.xdv"
+  "main.out"
+  "include/intro.aux"

@@ -45,7 +45,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 03f655a24fbb847599eddbc829a2b9b5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  worldCameraPitch: -80
+  worldCameraPitch: -90
   worldCameraRoll: 0
   FOV: 270
   cubeMapType: 1024

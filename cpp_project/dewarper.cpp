@@ -1,4 +1,4 @@
-﻿#include "opencv2/ccalib/omnidir.hpp"
+#include "opencv2/ccalib/omnidir.hpp"
 #include "opencv2/core.hpp"
 #include "opencv2/imgproc.hpp"
 #include "opencv2/calib3d.hpp"
@@ -242,7 +242,7 @@ int main(int argc, char** argv)
         ShowManyImages("Images", 2, leftImageRemapped, left);
         // Displaying the disparity map
         //cv::imshow("disparity", leftImageRemapped);
-
+        
 
         char key = (char)waitKey(1);
         switch (key){
