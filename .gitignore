@@ -9,3 +9,5 @@
 *.synctex.gz
 *.tex
 *.xdv
+thesis/_Overview/report.synctex.gz
+*.fls
