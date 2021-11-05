@@ -1,6 +1,18 @@
 {
     "cmake.configureOnOpen": false,
     "cSpell.words": [
-        "стереозрения"
+        "стереозрения",
+        "Liping",
+        "Qianbing",
+        "rusoverview",
+        "singlecam",
+        "singlecamrev",
+        "Zhang",
+        "Zisserman"
+    ],
+    "cSpell.enableFiletypes": [
+        "!bibtex",
+        "latex-expl3",
+        "tex"
     ]
 }
