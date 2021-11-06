@@ -31,7 +31,7 @@ void dewrapper(cv::Mat input, cv::Mat& outImage);
 
 extern "C"
 {
-	__declspec(dllexport) int initialize(int width, int height, int numOfImg);
+	__declspec(dllexport) int initialize(int width, int height, int numOfImg, int leftRot, int rightRot);
     __declspec(dllexport) void terminate();
     __declspec(dllexport) int getImages(Color32** raw, int width, int height, int numOfImg, bool isShow, FilterValues filter);
     __declspec(dllexport) void processImage(unsigned char* data, int width, int height);
