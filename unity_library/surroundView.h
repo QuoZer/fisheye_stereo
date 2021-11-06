@@ -23,10 +23,20 @@ struct FilterValues
     uchar VHigh;
 };
 
+struct SBMParams  // TODO: finish the structure
+{
+    uchar HLow;
+    uchar HHigh;
+    uchar SLow;
+    uchar SHigh;
+    uchar VLow;
+    uchar VHigh;
+};
+
 string findCoordinates(const cv::Mat& binaryImage, const cv::Mat& imageToDrawOn, bool drawCenters);
 void UndistortFY(cv::Mat& in, cv::Mat& undistorted);
 cv::Point2f getInputPoint(int x, int y, int srcwidth, int srcheight);
-void dewrapper(cv::Mat input, cv::Mat& outImage);
+cv::Mat calculateDisparities(cv::Mat leftImage, cv::Mat rightImage);
 
 
 extern "C"
