@@ -30,8 +30,26 @@ extern "C"
     cv::Mat output;
 
     FisheyeDewarper left_dewarper;      // dewarper library object
+    FisheyeDewarper right_dewarper;
+    // Creating an object of StereoSGBM algorithm
+    cv::Ptr<cv::StereoBM> stereo;
+    // initialize values for StereoSGBM parameters
+    int numDisparities = 8;
+    int blockSize = 5;
+    int preFilterType = 1;
+    int preFilterSize = 1;
+    int preFilterCap = 31;
+    int minDisparity = 0;
+    int textureThreshold = 10;
+    int uniquenessRatio = 15;
+    int speckleRange = 0;
+    int speckleWindowSize = 0;
+    int disp12MaxDiff = -1;
+    int dispType = CV_16S;
 
-    int initialize(int width, int height, int numOfImg)
+
+
+    int initialize(int width, int height, int numOfImg, int leftRot, int rightRot)
     {
         if (!cv::ocl::haveOpenCL())
         {
@@ -71,11 +89,18 @@ extern "C"
         {
             rawData.push_back(0);
         }
-        //  Old ones 350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9)
-        left_dewarper.setIntrinsics(229.3778, -0.0016, 9.737 * pow(10, -7), -4.2154 * pow(10, -9), cv::Vec2d(0, 0), cv::Matx22d(1, 0, 0, 1), 0.022);
+        //  Old ones (180 deg) 350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9)
+        left_dewarper.setIntrinsics(229.3778, -0.0016, 9.737 * pow(10, -7), -4.2154 * pow(10, -9), cv::Vec2d(0, 0), cv::Matx22d(1, 0, 0, 1), 0.022);        // 270 deg coefs
         left_dewarper.setSize(cv::Size(1080, 1080), cv::Size(1080, 1080), 90);
-        left_dewarper.setRpy(0, 0, 0);
+        left_dewarper.setRpy(leftRot, 0, 0);
         left_dewarper.fillMaps(SCARAMUZZA);
+
+        right_dewarper.setIntrinsics(229.3778, -0.0016, 9.737 * pow(10, -7), -4.2154 * pow(10, -9), cv::Vec2d(0, 0), cv::Matx22d(1, 0, 0, 1), 0.022);
+        right_dewarper.setSize(cv::Size(1080, 1080), cv::Size(1080, 1080), 90);
+        right_dewarper.setRpy(rightRot, 0, 0);
+        right_dewarper.fillMaps(SCARAMUZZA);
+
+        stereo = cv::StereoBM::create();
 
         return 0;
     }
@@ -118,8 +143,9 @@ extern "C"
         //      hardcoded image path((((
         string left_path = "D:/Work/Coding/Repos/RTC_Practice/fisheye_stereo/data/stereo_img/l" + to_string(screenIndex) + "_shot.jpg";
         string right_path = "D:/Work/Coding/Repos/RTC_Practice/fisheye_stereo/data/stereo_img/r" + to_string(screenIndex) + "_shot.jpg";
+
         cv::imwrite(left_path, left_dewarper.dewrapImage(cam1));
-        cv::imwrite(right_path, left_dewarper.dewrapImage(cam2));
+        cv::imwrite(right_path, right_dewarper.dewrapImage(cam2));
 
         if (isShow)
         {
@@ -146,22 +172,17 @@ extern "C"
                 flip(frames[i], frames[i], 0);
                 
             }
-            //frames[0] = colorFilter(frames[0], filter); // find spheres and print their coordinates
 
-            UndistortFY(frames[1], frames[1]);          // undistort 
-            //frames[1] = colorFilter(frames[1], filter); // find spheres on undistorted
-            /*
-            cv::Mat hsvimg;
-            cvtColor(frames[1], hsvimg, cv::COLOR_BGR2HSV);
-            inRange(hsvimg, cv::Scalar(filter.HLow, filter.SLow, filter.VLow),
-                cv::Scalar(filter.HHigh, filter.SHigh, filter.VHigh), frames[1]);
-            */
+            UndistortFY(frames[0], frames[0]);          // undistort 
+            UndistortFY(frames[1], frames[1]);
+            cv::Mat disparity = calculateDisparities(frames[0], frames[1]);
 
             if (isShow)
             {
                 for (int i = 0; i < numOfImg; i++)
                 {
                     imshow(framesNames[i], frames[i]);
+                    imshow("Disparity", disparity);
                     isShowed = true;
                 }
             }
@@ -279,7 +300,7 @@ string findCoordinates(const cv::Mat& binaryImage, const cv::Mat& imageToDrawOn,
     //mc[0].x = mc[0].x - x0;     // applying offset AFTER drawing circles
     //mc[0].y = mc[0].y - y0;
     
-    return angles;          // TODO: find out what's wrong with <Point>
+    return angles;          
 }
 
 void UndistortFY(cv::Mat& in, cv::Mat& undistorted)
@@ -288,62 +309,19 @@ void UndistortFY(cv::Mat& in, cv::Mat& undistorted)
 }
 
 
+cv::Mat calculateDisparities(cv::Mat leftImage, cv::Mat rightImage) {
+    cv::Mat disp; 
+    // Converting images to grayscale
+    cv::cvtColor(leftImage, leftImage, cv::COLOR_BGR2GRAY);
+    cv::cvtColor(rightImage, rightImage, cv::COLOR_BGR2GRAY);
 
-// example from here: https://stackoverflow.com/questions/34316306/opencv-fisheye-calibration-cuts-too-much-of-the-resulting-image/53500300#53500300
-#define PI 3.1415926536
-cv::Point2f getInputPoint(int x, int y, int srcwidth, int srcheight)
-{
-    cv::Point2f pfish;
-    float theta, phi, r, r2;
-    cv::Point3f psph;
-    float FOV = (float)PI / 270 * 180;
-    float FOV2 = (float)PI / 270 * 180;     // ??? doesnt work the same way outside unity for some reason
-    float width = srcwidth;
-    float height = srcheight;
+    // Calculating disparith using the StereoBM algorithm
+    stereo->compute(leftImage, rightImage, disp);
 
-    // Polar angles
-    theta = PI * (x / width - 0.5); // -pi/2 to pi/2
-    phi = PI * (y / height - 0.5);  // -pi/2 to pi/2
+    // Converting disparity values to CV_32F from CV_16S
+    disp.convertTo(disp, CV_32F, 1.0);
 
-    // Vector in 3D space
-    psph.x = cos(phi) * sin(theta);
-    psph.y = cos(phi) * cos(theta);
-    psph.z = sin(phi) * cos(theta);
-
-    // Calculate fisheye angle and radius
-    theta = atan2(psph.z, psph.x);
-    phi = atan2(sqrt(psph.x * psph.x + psph.z * psph.z), psph.y);
-
-    r = width * phi / FOV;
-    r2 = height * phi / FOV2;
-
-    // Pixel in fisheye space
-    pfish.x = 0.5 * width + r * cos(theta);
-    pfish.y = 0.5 * height + r2 * sin(theta);
-    return pfish;
-}
-
-// junk
-void dewrapper(cv::Mat input, cv::Mat& outImagePtr)
-{
-    cv::Mat outImage(input.rows, input.cols, CV_8UC3);
-
-    for (int i = 0; i < outImage.cols; i++)
-    {
-        for (int j = 0; j < outImage.rows; j++)
-        {
-            cv::Point2f inP = getInputPoint(i, j, input.cols, input.rows);      // find pixel on a distorted image corresponding to the desired one
-            cv::Point inP2((int)inP.x, (int)inP.y);
-
-            if (inP2.x >= input.cols || inP2.y >= input.rows)
-                continue;
-
-            if (inP2.x < 0 || inP2.y < 0)
-                continue;
-            cv::Vec3b color = input.at<cv::Vec3b>(inP2);
-            outImage.at<cv::Vec3b>(cv::Point(i, j)) = color;
-        }
-    }
-
-    outImagePtr = outImage;
+    // Scaling down the disparity values and normalizing them 
+    disp = (disp / 16.0f - (float)minDisparity) / ((float)numDisparities);
+    return disp;
 }

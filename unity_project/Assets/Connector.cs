@@ -23,10 +23,11 @@ public struct FilterValues
 
 public class Connector : MonoBehaviour
 {
-
     [Header("Cameras")]
     public Camera camera1;
+    public int cam1XRot;
     public Camera camera2;
+    public int cam2XRot;
 
     [Header("Bowl")]
     public GameObject bowl;
@@ -58,10 +59,9 @@ public class Connector : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        unsafe
-        {
+        unsafe {
             //AllocConsole();
-            initialize(width, height, 2);
+            initialize(width, height, 2, cam1XRot, cam2XRot);
         }
 
     }
@@ -76,29 +76,23 @@ public class Connector : MonoBehaviour
 
         TextureToCVMat(camTex1, camTex2);
 
-        if (Input.GetKeyUp("[1]"))
-        {
+        if (Input.GetKeyUp("[1]")) {
             InitTexture();
             bowl.GetComponent<Renderer>().material.mainTexture = tex;
             MatToTexture2D();
         }
 
-        if (Input.GetKeyUp("[2]"))
-        {
+        if (Input.GetKeyUp("[2]")) {
             // pano = !pano;        //idk
             Screenshoter(camTex1, camTex2, 0, true);
-
         }
 
-        if (pano)
-        {
-
+        if (pano) {
             MatToTexture2D();
         }
 
-        if (Input.GetKeyUp("[3]"))
-        {
-            initialize(width, height, 1);
+        if (Input.GetKeyUp("[3]")) {
+            initialize(width, height, 1, cam1XRot, cam2XRot);
         }
     }
 
@@ -233,7 +227,7 @@ public class Connector : MonoBehaviour
     #region dllimport
 
     [DllImport("unity_plugin", EntryPoint = "initialize")]
-    unsafe private static extern int initialize(int width, int height, int num);
+    unsafe private static extern int initialize(int width, int height, int num, int leftRot, int rightRot);
 
     [DllImport("unity_plugin", EntryPoint = "terminate")]
     unsafe private static extern void terminate();

@@ -4,6 +4,7 @@ all:
 
 pdf:
 	pdflatex report.tex
+	bibtex
 
 clean:
 	rm -f *.aux
