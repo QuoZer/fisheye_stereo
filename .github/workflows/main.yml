@@ -12,6 +12,7 @@ jobs:
           working_directory: ./thesis/NIR/
           root_file: main.tex
           args: -xelatex -latexoption=-file-line-error -latexoption=-interaction=nonstopmode
+          extra_system_packages: ttf-mscorefonts-installer
           
       - run: mkdir -p ./thesis/NIR/
       - run: echo hello > ./thesis/NIR/main.pdf
