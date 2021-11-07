@@ -10,7 +10,7 @@ jobs:
         uses: dante-ev/latex-action@latest
         with:
           working_directory: ./thesis/NIR/
-          root_file: ./thesis/NIR/main.tex
+          root_file: main.tex
           
       - run: mkdir -p ./thesis/NIR/
       - run: echo hello > ./thesis/NIR/main.pdf
