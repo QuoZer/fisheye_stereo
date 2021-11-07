@@ -4,14 +4,17 @@ name: AltCompile
 on: [push]
 
 jobs:
-  latex-job:
+  build_latex:
     runs-on: ubuntu-latest
-    name: A job to Compile Latex file
     steps:
-    - uses: actions/checkout@v1
-    - name: Compilation
-      uses: vinay0410/tectonic-action@master
-      env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tex_path: 'dir/file.tex'
+      - name: Set up Git repository
+        uses: actions/checkout@v2
+      - name: Compile LaTeX document
+        uses: xu-cheng/latex-action@v2
+        with:
+          working_directory: ./thesis/NIR/
+          root_file: main.tex
+          latexmk_use_xelatex: true
+          extra_system_packages: "msttcorefonts-installer"
+          
+          
