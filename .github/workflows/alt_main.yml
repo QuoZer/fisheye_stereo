@@ -15,6 +15,6 @@ jobs:
           working_directory: ./thesis/NIR/
           root_file: main.tex
           latexmk_use_xelatex: true
-          extra_fonts: ./thesis/TimesNewRoman.ttf
+          extra_fonts: TimesNewRoman.ttf
           
           
