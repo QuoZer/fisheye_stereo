@@ -138,6 +138,8 @@ extern "C"
         //cv::hconcat(cam1, cam2, stereo);        // horizontal concatation
         //cam1.copyTo(stereo(cv::Rect(0, 0, width, height)));
         //cam2.copyTo(stereo(cv::Rect(width, 0, width, height)));
+        cam1 = left_dewarper.dewrapImage(cam1);    // undistort 
+        cam2 = right_dewarper.dewrapImage(cam2);
 
         screenIndex++;
         //      hardcoded image path((((
@@ -155,7 +157,7 @@ extern "C"
         return 0;
     }
 
-    int getImages(Color32** raw, int width, int height, int numOfImg, bool isShow, FilterValues filter)
+    int getImages(Color32** raw, int width, int height, int numOfImg, bool isShow, SGBMparams sgbm)
     {
         if (numOfImg < 1)
         {
@@ -173,8 +175,9 @@ extern "C"
                 
             }
 
-            UndistortFY(frames[0], frames[0]);          // undistort 
-            UndistortFY(frames[1], frames[1]);
+            frames[0] = left_dewarper.dewrapImage(frames[0]);    // undistort 
+            frames[1] = right_dewarper.dewrapImage(frames[1]);
+            fillStereoParams(sgbm);
             cv::Mat disparity = calculateDisparities(frames[0], frames[1]);
 
             if (isShow)
@@ -303,11 +306,20 @@ string findCoordinates(const cv::Mat& binaryImage, const cv::Mat& imageToDrawOn,
     return angles;          
 }
 
-void UndistortFY(cv::Mat& in, cv::Mat& undistorted)
-{
-    undistorted = left_dewarper.dewrapImage(in); //
-}
 
+void fillStereoParams(SGBMparams& sgbm)
+{
+    stereo->setBlockSize(sgbm.blockSize*2+5);
+    stereo->setPreFilterCap(sgbm.preFilterCap);
+    stereo->setPreFilterSize(sgbm.preFilterSize*2+5);
+    stereo->setMinDisparity(sgbm.minDisparity);
+    stereo->setNumDisparities(sgbm.numDisparities * 16);
+    stereo->setTextureThreshold(sgbm.textureThreshold);
+    stereo->setUniquenessRatio(sgbm.uniquenessRatio);
+    stereo->setSpeckleWindowSize(sgbm.speckleWindowSize*2);
+    stereo->setSpeckleRange(sgbm.speckleRange);
+    stereo->setDisp12MaxDiff(sgbm.disp12MaxDiff);
+}
 
 cv::Mat calculateDisparities(cv::Mat leftImage, cv::Mat rightImage) {
     cv::Mat disp; 
@@ -322,6 +334,6 @@ cv::Mat calculateDisparities(cv::Mat leftImage, cv::Mat rightImage) {
     disp.convertTo(disp, CV_32F, 1.0);
 
     // Scaling down the disparity values and normalizing them 
-    disp = (disp / 16.0f - (float)minDisparity) / ((float)numDisparities);
+    disp = (disp / 16.0f - (float)stereo->getMinDisparity()) / ((float)stereo->getNumDisparities());
     return disp;
 }

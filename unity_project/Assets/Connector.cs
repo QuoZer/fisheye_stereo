@@ -20,6 +20,20 @@ public struct FilterValues
     public byte VHigh;
 };
 
+public struct SGBMparams
+{
+    public byte preFilterSize;
+    public byte preFilterCap;
+    public byte blockSize;
+    public byte minDisparity;
+    public byte numDisparities;
+    public byte textureThreshold;
+    public byte uniquenessRatio;
+    public byte speckleRange;
+    public byte disp12MaxDiff;
+    public byte speckleWindowSize;
+};
+
 
 public class Connector : MonoBehaviour
 {
@@ -33,12 +47,16 @@ public class Connector : MonoBehaviour
     public GameObject bowl;
 
     [Header("Sliders")]
-    public Slider HLow;
-    public Slider HHigh;
-    public Slider SLow;
-    public Slider SHigh;
-    public Slider VLow;
-    public Slider VHigh;
+    public Slider preFilterSize;
+    public Slider preFilterCap;
+    public Slider blockSize;
+    public Slider minDisparity;
+    public Slider numDisparities;
+    public Slider textureThreshold;
+    public Slider uniquenessRatio;
+    public Slider speckleRange;
+    public Slider speckleWindowSize;
+    public Slider disp12MaxDiff;
 
     [Header("Img parameters")]
     public int width = 1080;
@@ -49,7 +67,7 @@ public class Connector : MonoBehaviour
     private Texture2D camTex1;
     private Texture2D camTex2;
 
-    private FilterValues filter;        // structure to store HSV filter values
+    private SGBMparams sgbm;        // structure to store SGBM parameter values
 
     private Rect readingRect;
     int isOk = 0;
@@ -61,6 +79,7 @@ public class Connector : MonoBehaviour
     {
         unsafe {
             //AllocConsole();
+            sgbm = new SGBMparams();
             initialize(width, height, 2, cam1XRot, cam2XRot);
         }
 
@@ -73,6 +92,8 @@ public class Connector : MonoBehaviour
 
         camTex1 = CameraToTexture2D(camera1);
         camTex2 = CameraToTexture2D(camera2);
+
+        fillStereoParams();
 
         TextureToCVMat(camTex1, camTex2);
 
@@ -134,23 +155,14 @@ public class Connector : MonoBehaviour
         Color32[] rawColor2 = raw2.GetPixels32();
 
         Color32*[] rawColors = new Color32*[2];
-        /*
-        filter.HLow = (byte)HLow.value;
-        filter.HHigh = (byte)HHigh.value;
-        filter.SLow = (byte)SLow.value;
-        filter.SHigh = (byte)SHigh.value;
-        filter.VLow = (byte)VLow.value;
-        filter.VHigh = (byte)VHigh.value;
-        */
 
-    fixed (Color32* p1 = rawColor1, p2 = rawColor2)
+        fixed (Color32* p1 = rawColor1, p2 = rawColor2)
         {
-            //getImages((IntPtr)p1, (IntPtr)p2, (IntPtr)p3, (IntPtr)p4, raw1.width, raw1.height, show);
             rawColors[0] = p1;
             rawColors[1] = p2;
             fixed (Color32** pointer = rawColors)
             {
-                getImages((IntPtr)pointer, width, height, 2, showImages, filter);   // OCV gets images
+                getImages((IntPtr)pointer, width, height, 2, showImages, sgbm);   // OCV gets images
             }
         }
 
@@ -223,6 +235,19 @@ public class Connector : MonoBehaviour
         tex.SetPixels32(pixel32);
         tex.Apply();
     }
+    
+    void fillStereoParams()
+    {       // HACK: this should be fixed
+        sgbm.preFilterCap     = (byte)preFilterCap.value;
+        sgbm.preFilterSize    = (byte)preFilterSize.value;
+        sgbm.blockSize        = (byte)blockSize.value;
+        sgbm.minDisparity     = (byte)minDisparity.value;
+        sgbm.numDisparities   = (byte)numDisparities.value;
+        sgbm.textureThreshold = (byte)textureThreshold.value;
+        sgbm.uniquenessRatio  = (byte)uniquenessRatio.value;
+        sgbm.speckleRange     = (byte)speckleRange.value;
+        sgbm.disp12MaxDiff    = (byte)disp12MaxDiff.value;
+    }
 
     #region dllimport
 
@@ -236,7 +261,7 @@ public class Connector : MonoBehaviour
     unsafe private static extern void processImage(IntPtr data, int width, int height);
 
     [DllImport("unity_plugin", EntryPoint = "getImages")]
-    unsafe private static extern int getImages(IntPtr raw, int width, int height, int numOfImg, bool isShow, FilterValues filter);
+    unsafe private static extern int getImages(IntPtr raw, int width, int height, int numOfImg, bool isShow, SGBMparams sgbm);
 
     [DllImport("unity_plugin", EntryPoint = "takeScreenshot")]
     unsafe private static extern int takeScreenshot(IntPtr raw, int width, int height, int numOfCam, bool isShow);

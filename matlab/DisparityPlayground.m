@@ -1,6 +1,6 @@
 
-imgRight = 'D:\Work\Coding\Repos\RTC_Practice\fisheye_stereo\data\stereo_img\Right_images\r18_shot.jpg';
-imgLeft = 'D:\Work\Coding\Repos\RTC_Practice\fisheye_stereo\data\stereo_img\Left_images\l18_shot.jpg';
+imgRight = 'D:\Work\Coding\Repos\RTC_Practice\fisheye_stereo\data\stereo_img\Right_images\r4_shot.jpg';
+imgLeft = 'D:\Work\Coding\Repos\RTC_Practice\fisheye_stereo\data\stereo_img\Left_images\l4_shot.jpg';
 
 lImage = imread(imgLeft);
 rImage = imread(imgRight);
