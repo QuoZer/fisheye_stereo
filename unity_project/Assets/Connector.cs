@@ -6,19 +6,129 @@ using System.Linq;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using System.Threading;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
-using System.Threading.Tasks;
+using MultiThreading;
 
-public struct FilterValues
+public class ThreadInitializer: MultiThreading.ThreadedJob
 {
-    public byte HLow;
-    public byte HHigh;
-    public byte SLow;
-    public byte SHigh;
-    public byte VLow;
-    public byte VHigh;
-};
+    public int code = -1;  // out error code 
+    int width;
+    int height;
+    int leftYaw;
+    int rightYaw;
+
+    public void SetParameters(int w, int h, int leftAngle, int rightAngle)
+    {
+        width = w;
+        height = h;
+        leftYaw = leftAngle;
+        rightYaw = rightAngle;
+    }
+
+    unsafe protected override void ThreadFunction()
+    {
+        Debug.Log("Initializing...");
+        code = initialize(width, height, 2, leftYaw, rightYaw);
+        Debug.Log("Closing thread with code:" + code);
+    }
+
+
+    [DllImport("unity_plugin", EntryPoint = "initialize")]
+    unsafe private static extern int initialize(int width, int height, int num, int leftRot, int rightRot);
+}
+
+public class DisaprityCalculator: MultiThreading.ThreadedJob
+{
+    public int code;  // out error code 
+    Texture2D raw1; 
+    Texture2D raw2;
+    int width;
+    int height;
+    bool showImages;
+    bool parametersUpdated = false;
+    SGBMparams sgbm;
+    unsafe Color32** imagePtr;
+
+
+    public void SetParameters(Texture2D rawImg1, Texture2D rawImg2, int w, int h, bool show, SGBMparams stereoparams)
+    {
+        raw1 = rawImg1;
+        raw2 = rawImg2;
+        width = w;
+        height = h;
+        showImages = show;
+        sgbm = stereoparams;
+        parametersUpdated = true;
+
+        Debug.Log("Parameters Set");
+    }
+
+    unsafe protected override void PreStart()
+    {
+        //Debug.Log("Pre Start");
+        Color32[] rawColor1 = raw1.GetPixels32();
+        Color32[] rawColor2 = raw2.GetPixels32();
+        
+        Color32*[] rawColors = new Color32*[2];
+        
+        fixed (Color32* p1 = rawColor1, p2 = rawColor2)
+        {
+            rawColors[0] = p1;
+            rawColors[1] = p2;
+            fixed (Color32** pointer = rawColors)
+            {
+                imagePtr = pointer;
+            }
+            
+        }
+    }
+
+    public override bool Update()
+    {
+        if (!parametersUpdated)
+        {
+            //OnFinished();
+            return true;
+        }
+        return false;
+    }
+
+    protected override void OnFinished()
+    {
+        UnityEngine.Object.Destroy(raw1);
+        UnityEngine.Object.Destroy(raw2);
+        
+        raw1 = null;
+        raw2 = null;
+    }
+
+    unsafe protected override void ThreadFunction()
+    {
+        Debug.Log("Sending frame...");
+        //code = takeStereoScreenshot((IntPtr)imagePtr, width, height, 0, 1, false);
+
+        while (true)
+        {
+            if (parametersUpdated)
+            {
+                code = getImages((IntPtr)imagePtr, width, height, 2, showImages, sgbm);
+                parametersUpdated = false;
+                Debug.Log("image processed");
+            }
+            else Thread.Sleep(50);
+        }
+
+        //Debug.Log("Leaving thread with code:"+code);
+    }
+
+    [DllImport("unity_plugin", EntryPoint = "getImages")]
+    unsafe private static extern int getImages(IntPtr raw, int width, int height, int numOfImg, bool isShow, SGBMparams sgbm);
+    [DllImport("unity_plugin", EntryPoint = "takeStereoScreenshot")]
+    unsafe private static extern int takeStereoScreenshot(IntPtr raw, int width, int height, int numOfCam1, int numOfCam2, bool isShow);
+
+}
 
 public struct SGBMparams
 {
@@ -33,6 +143,7 @@ public struct SGBMparams
     public byte disp12MaxDiff;
     public byte speckleWindowSize;
 };
+
 
 
 public class Connector : MonoBehaviour
@@ -61,7 +172,7 @@ public class Connector : MonoBehaviour
     [Header("Img parameters")]
     public int width = 1080;
     public int height = 1080;
-    public bool showImages = false;
+    public bool showImages = true;
     public bool showPano = false;
 
     private Texture2D camTex1;
@@ -77,16 +188,23 @@ public class Connector : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        Debug.Log("Start Function");
         unsafe {
             //AllocConsole();
             sgbm = new SGBMparams();
-            initialize(width, height, 2, cam1XRot, cam2XRot);
+            StartCoroutine(Initializer());         // HACK: to quickly test initialization
         }
 
     }
 
-    // Update is called once per frame
     bool pano = false;
+    // Threading stuff
+    DisaprityCalculator imageProcessingThread = new DisaprityCalculator();
+    bool threadStarted = false;
+    bool initFlag = false;
+    bool processingFrame = false;
+
+    // Update is called once per frame
     void Update()
     {
 
@@ -94,8 +212,15 @@ public class Connector : MonoBehaviour
         camTex2 = CameraToTexture2D(camera2);
 
         fillStereoParams();
+        if (initFlag == true)           // once the second thread finishes initialization
+        {
+            if (!processingFrame)
+            {
+                processingFrame = true;
+                StartCoroutine(Dewarper(camTex1, camTex2));
+            }
+        }
 
-        TextureToCVMat(camTex1, camTex2);
 
         if (Input.GetKeyUp("[1]")) {
             InitTexture();
@@ -115,6 +240,8 @@ public class Connector : MonoBehaviour
         if (Input.GetKeyUp("[3]")) {
             initialize(width, height, 1, cam1XRot, cam2XRot);
         }
+
+        System.GC.Collect();        // doesn't seem to fix leaking
     }
 
     void OnApplicationQuit()
@@ -128,6 +255,37 @@ public class Connector : MonoBehaviour
         GUI.Label(new Rect(0, 0, 100, 100), (1.0f / (Time.smoothDeltaTime)).ToString());
     }
 
+    
+    IEnumerator Dewarper(Texture2D raw1, Texture2D raw2)
+    {
+        imageProcessingThread.SetParameters(raw1, raw2, width, height, showImages, sgbm);
+        if (!threadStarted)
+        {
+            Debug.Log("Starting thread");
+            imageProcessingThread.Start();
+            threadStarted = true;
+        }
+
+        yield return StartCoroutine(imageProcessingThread.WaitFor());
+        processingFrame = imageProcessingThread.code == 0 ? false : true;
+    }
+
+    IEnumerator Initializer()
+    {
+        ThreadInitializer thread = new ThreadInitializer();
+        thread.SetParameters(width, height, cam1XRot, cam2XRot);
+        Debug.Log("Starting init thread");
+        thread.Start();
+
+        yield return StartCoroutine(thread.WaitFor());
+
+        initFlag = thread.code == 0 ? true : false;
+        if (initFlag)
+        {
+            thread.Abort();
+            Debug.Log("Abort init thread");
+        }
+    }
 
     private Texture2D CameraToTexture2D(Camera camera)
     {
@@ -199,8 +357,8 @@ public class Connector : MonoBehaviour
 
 
     // for bowl
-    private int polarWidth = 0;
-    private int polarHeight = 0;
+    private int polarWidth = 1080;
+    private int polarHeight = 1080;
 
     private Texture2D tex;
     private Color32[] pixel32;
@@ -237,7 +395,7 @@ public class Connector : MonoBehaviour
     }
     
     void fillStereoParams()
-    {       // HACK: this should be fixed
+    {     
         sgbm.preFilterCap     = (byte)preFilterCap.value;
         sgbm.preFilterSize    = (byte)preFilterSize.value;
         sgbm.blockSize        = (byte)blockSize.value;

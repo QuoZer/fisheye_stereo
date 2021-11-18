@@ -32,7 +32,8 @@ extern "C"
     FisheyeDewarper left_dewarper;      // dewarper library object
     FisheyeDewarper right_dewarper;
     // Creating an object of StereoSGBM algorithm
-    cv::Ptr<cv::StereoBM> stereo;
+    //cv::Ptr<cv::StereoBM> stereo;
+    cv::Ptr<cv::StereoSGBM> stereo;
     // initialize values for StereoSGBM parameters
     int numDisparities = 8;
     int blockSize = 5;
@@ -100,7 +101,7 @@ extern "C"
         right_dewarper.setRpy(rightRot, 0, 0);
         right_dewarper.fillMaps(SCARAMUZZA);
 
-        stereo = cv::StereoBM::create();
+        stereo = cv::StereoSGBM::create();
 
         return 0;
     }
@@ -311,14 +312,19 @@ void fillStereoParams(SGBMparams& sgbm)
 {
     stereo->setBlockSize(sgbm.blockSize*2+5);
     stereo->setPreFilterCap(sgbm.preFilterCap);
-    stereo->setPreFilterSize(sgbm.preFilterSize*2+5);
+    //stereo->setPreFilterSize(sgbm.preFilterSize*2+5);
+    stereo->setP1(sgbm.preFilterSize);
     stereo->setMinDisparity(sgbm.minDisparity);
     stereo->setNumDisparities(sgbm.numDisparities * 16);
-    stereo->setTextureThreshold(sgbm.textureThreshold);
+    //stereo->setTextureThreshold(sgbm.textureThreshold);
+    stereo->setP2(sgbm.textureThreshold);
     stereo->setUniquenessRatio(sgbm.uniquenessRatio);
     stereo->setSpeckleWindowSize(sgbm.speckleWindowSize*2);
     stereo->setSpeckleRange(sgbm.speckleRange);
     stereo->setDisp12MaxDiff(sgbm.disp12MaxDiff);
+    // 2 pass eexpensive method
+    // stereo->setMode(cv::StereoSGBM::MODE_HH);
+
 }
 
 cv::Mat calculateDisparities(cv::Mat leftImage, cv::Mat rightImage) {
@@ -335,5 +341,8 @@ cv::Mat calculateDisparities(cv::Mat leftImage, cv::Mat rightImage) {
 
     // Scaling down the disparity values and normalizing them 
     disp = (disp / 16.0f - (float)stereo->getMinDisparity()) / ((float)stereo->getNumDisparities());
+
+    output = disp;
+
     return disp;
 }
