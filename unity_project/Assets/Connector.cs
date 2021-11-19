@@ -113,17 +113,17 @@ public class DisaprityCalculator
         m_Thread.Abort();
     }
 
-    public void Update(Texture2D rawImg1, Texture2D rawImg2, SGBMparams stereoparams)
+    public void Update(Color32[] rawImg1, Color32[] rawImg2, SGBMparams stereoparams)
     {   
         // Update is called every frame from the main thred Update(). We don't want to mess with the data while the image is processed.
         if (!processingFrame)
         {
-            //MainThreadWait.WaitOne();
-            //MainThreadWait.Reset();
+            MainThreadWait.WaitOne();
+            MainThreadWait.Reset();
 
             // copying into this thread memory
-            rawColor1 = rawImg1.GetPixels32();
-            rawColor2 = rawImg2.GetPixels32();
+            rawColor1 = rawImg1;
+            rawColor2 = rawImg2;
             sgbm = stereoparams;
 
             ChildThreadWait.Set();
@@ -143,7 +143,7 @@ public class DisaprityCalculator
             processingFrame = true;
             TextureToMat();
             processingFrame = false;
-            Debug.Log("image processed");
+            //Debug.Log("image processed");
 
             WaitHandle.SignalAndWait(MainThreadWait, ChildThreadWait);
         }
@@ -240,7 +240,8 @@ public class Connector : MonoBehaviour
 
         if (initFlag == true)           // once the second thread finishes initialization
         {
-            imageProcessingThread.Update(camTex1, camTex2, sgbm);         // update the Thread class with new data
+            // update the Thread class with new data
+            imageProcessingThread.Update(camTex1.GetPixels32(), camTex2.GetPixels32(), sgbm);         
             if (!threadStarted)         // imageprocessing thread hasn't been started before
             {
                 Debug.Log("Starting thread");
