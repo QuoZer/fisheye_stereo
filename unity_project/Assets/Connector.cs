@@ -39,37 +39,48 @@ public class ThreadInitializer: MultiThreading.ThreadedJob
     unsafe private static extern int initialize(int width, int height, int num, int leftRot, int rightRot);
 }
 
-public class DisaprityCalculator: MultiThreading.ThreadedJob
+public class DisaprityCalculator
 {
     public int code;  // out error code 
-    Texture2D raw1; 
-    Texture2D raw2;
+    Color32[] rawColor1; 
+    Color32[] rawColor2;
     int width;
     int height;
     bool showImages;
     bool parametersUpdated = false;
+    bool processingFrame = false;
     SGBMparams sgbm;
     unsafe Color32** imagePtr;
+    EventWaitHandle ChildThreadWait = new EventWaitHandle(true, EventResetMode.ManualReset);
+    EventWaitHandle MainThreadWait = new EventWaitHandle(true, EventResetMode.ManualReset);
 
-
-    public void SetParameters(Texture2D rawImg1, Texture2D rawImg2, int w, int h, bool show, SGBMparams stereoparams)
+    private System.Threading.Thread m_Thread = null;
+    private bool m_IsDone = false;
+    public bool IsDone
     {
-        raw1 = rawImg1;
-        raw2 = rawImg2;
+        get
+        {
+            bool tmp;
+            tmp = m_IsDone;
+            return tmp;
+        }
+        set
+        {
+            m_IsDone = value;
+        }
+    }
+
+    public DisaprityCalculator(int w, int h, bool show)
+    {
         width = w;
         height = h;
         showImages = show;
-        sgbm = stereoparams;
-        parametersUpdated = true;
-
         Debug.Log("Parameters Set");
     }
 
-    unsafe protected override void PreStart()
+    unsafe protected void TextureToMat()
     {
         //Debug.Log("Pre Start");
-        Color32[] rawColor1 = raw1.GetPixels32();
-        Color32[] rawColor2 = raw2.GetPixels32();
         
         Color32*[] rawColors = new Color32*[2];
         
@@ -79,48 +90,63 @@ public class DisaprityCalculator: MultiThreading.ThreadedJob
             rawColors[1] = p2;
             fixed (Color32** pointer = rawColors)
             {
-                imagePtr = pointer;
+                code = getImages((IntPtr)pointer, width, height, 2, showImages, sgbm);
             }
             
         }
+
     }
 
-    public override bool Update()
+    private void Run()
     {
-        if (!parametersUpdated)
+        ThreadFunction();
+        IsDone = true;
+    }
+
+    public void Start()
+    {
+        m_Thread = new System.Threading.Thread(Run);
+        m_Thread.Start();
+    }
+    public void Abort()
+    {
+        m_Thread.Abort();
+    }
+
+    public void Update(Texture2D rawImg1, Texture2D rawImg2, SGBMparams stereoparams)
+    {   
+        // Update is called every frame from the main thred Update(). We don't want to mess with the data while the image is processed.
+        if (!processingFrame)
         {
-            //OnFinished();
-            return true;
+            //MainThreadWait.WaitOne();
+            //MainThreadWait.Reset();
+
+            // copying into this thread memory
+            rawColor1 = rawImg1.GetPixels32();
+            rawColor2 = rawImg2.GetPixels32();
+            sgbm = stereoparams;
+
+            ChildThreadWait.Set();
+
         }
-        return false;
     }
 
-    protected override void OnFinished()
+    unsafe protected void ThreadFunction()
     {
-        UnityEngine.Object.Destroy(raw1);
-        UnityEngine.Object.Destroy(raw2);
-        
-        raw1 = null;
-        raw2 = null;
-    }
-
-    unsafe protected override void ThreadFunction()
-    {
-        Debug.Log("Sending frame...");
-        //code = takeStereoScreenshot((IntPtr)imagePtr, width, height, 0, 1, false);
+        ChildThreadWait.Reset();
+        ChildThreadWait.WaitOne();
 
         while (true)
         {
-            if (parametersUpdated)
-            {
-                code = getImages((IntPtr)imagePtr, width, height, 2, showImages, sgbm);
-                parametersUpdated = false;
-                Debug.Log("image processed");
-            }
-            else Thread.Sleep(50);
-        }
+            ChildThreadWait.Reset();
 
-        //Debug.Log("Leaving thread with code:"+code);
+            processingFrame = true;
+            TextureToMat();
+            processingFrame = false;
+            Debug.Log("image processed");
+
+            WaitHandle.SignalAndWait(MainThreadWait, ChildThreadWait);
+        }
     }
 
     [DllImport("unity_plugin", EntryPoint = "getImages")]
@@ -170,9 +196,9 @@ public class Connector : MonoBehaviour
     public Slider disp12MaxDiff;
 
     [Header("Img parameters")]
-    public int width = 1080;
-    public int height = 1080;
-    public bool showImages = true;
+    public static int width = 1080;
+    public static int height = 1080;
+    public static bool showImages = true;
     public bool showPano = false;
 
     private Texture2D camTex1;
@@ -199,10 +225,9 @@ public class Connector : MonoBehaviour
 
     bool pano = false;
     // Threading stuff
-    DisaprityCalculator imageProcessingThread = new DisaprityCalculator();
+    DisaprityCalculator imageProcessingThread = new DisaprityCalculator(width, height, showImages);
     bool threadStarted = false;
     bool initFlag = false;
-    bool processingFrame = false;
 
     // Update is called once per frame
     void Update()
@@ -210,14 +235,17 @@ public class Connector : MonoBehaviour
 
         camTex1 = CameraToTexture2D(camera1);
         camTex2 = CameraToTexture2D(camera2);
-
+        // fills 'sgbm' structure with slider values 
         fillStereoParams();
+
         if (initFlag == true)           // once the second thread finishes initialization
         {
-            if (!processingFrame)
+            imageProcessingThread.Update(camTex1, camTex2, sgbm);         // update the Thread class with new data
+            if (!threadStarted)         // imageprocessing thread hasn't been started before
             {
-                processingFrame = true;
-                StartCoroutine(Dewarper(camTex1, camTex2));
+                Debug.Log("Starting thread");
+                imageProcessingThread.Start();      // start the thread
+                threadStarted = true;
             }
         }
 
@@ -255,20 +283,7 @@ public class Connector : MonoBehaviour
         GUI.Label(new Rect(0, 0, 100, 100), (1.0f / (Time.smoothDeltaTime)).ToString());
     }
 
-    
-    IEnumerator Dewarper(Texture2D raw1, Texture2D raw2)
-    {
-        imageProcessingThread.SetParameters(raw1, raw2, width, height, showImages, sgbm);
-        if (!threadStarted)
-        {
-            Debug.Log("Starting thread");
-            imageProcessingThread.Start();
-            threadStarted = true;
-        }
 
-        yield return StartCoroutine(imageProcessingThread.WaitFor());
-        processingFrame = imageProcessingThread.code == 0 ? false : true;
-    }
 
     IEnumerator Initializer()
     {
@@ -283,8 +298,9 @@ public class Connector : MonoBehaviour
         if (initFlag)
         {
             thread.Abort();
-            Debug.Log("Abort init thread");
+            Debug.Log("Aborting init thread");
         }
+        
     }
 
     private Texture2D CameraToTexture2D(Camera camera)
