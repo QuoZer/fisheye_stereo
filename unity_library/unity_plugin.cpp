@@ -147,8 +147,8 @@ extern "C"
         string left_path = "D:/Work/Coding/Repos/RTC_Practice/fisheye_stereo/data/stereo_img/l" + to_string(screenIndex) + "_shot.jpg";
         string right_path = "D:/Work/Coding/Repos/RTC_Practice/fisheye_stereo/data/stereo_img/r" + to_string(screenIndex) + "_shot.jpg";
 
-        cv::imwrite(left_path, left_dewarper.dewrapImage(cam1));
-        cv::imwrite(right_path, right_dewarper.dewrapImage(cam2));
+        cv::imwrite(left_path, cam1);
+        cv::imwrite(right_path, cam2);
 
         if (isShow)
         {
