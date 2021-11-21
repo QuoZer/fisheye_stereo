@@ -12,7 +12,6 @@ clean:
 	del -fr *.blg
 	del -fr *.log
 	del -fr *.out
-	del -fr *.pdf
 	del -fr *.toc
 	del -fr *.xdv
 	
@@ -21,6 +20,5 @@ clean:
 	del -fr .\include\*.blg
 	del -fr .\include\*.log
 	del -fr .\include\*.out
-	del -fr .\include\*.pdf
 	del -fr .\include\*.toc
 	del -fr .\include\*.xdv
