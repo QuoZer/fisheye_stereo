@@ -95,7 +95,7 @@
 
 % Нумерация страниц справа сверху
 \usepackage{fancyhdr}
-\pagestyle{fancy}
+\pagestyle{plain}
 \fancyhf{}
 \fancyhead[R]{\textrm{\thepage}}
 \fancyheadoffset{0mm}
@@ -157,7 +157,7 @@
     \else
         \expandafter\@secondoftwo
     \fi
-    {\oldcontentsline{#1}{\MakeTextUppercase{#2}}}
+    {\oldcontentsline{#1}{#2}}          % {\oldcontentsline{#1}{\MakeTextUppercase{#2}}} 
     {\oldcontentsline{#1}{#2}}
 }
 \makeatother

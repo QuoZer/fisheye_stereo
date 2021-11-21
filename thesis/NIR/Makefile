@@ -1,4 +1,4 @@
-all: build
+all: build clean
 
 build:
 	latexmk -xelatex \
@@ -7,10 +7,20 @@ pdf:
 	pdflatex main.tex
 
 clean:
-	rm -f *.aux
-	rm -f *.bbl
-	rm -f *.blg
-	rm -f *.log
-	rm -f *.out
-	rm -f *.pdf
-	rm -f *.toc
+	del -fr *.aux
+	del -fr *.bbl
+	del -fr *.blg
+	del -fr *.log
+	del -fr *.out
+	del -fr *.pdf
+	del -fr *.toc
+	del -fr *.xdv
+	
+	del -fr .\include\*.aux
+	del -fr .\include\*.bbl
+	del -fr .\include\*.blg
+	del -fr .\include\*.log
+	del -fr .\include\*.out
+	del -fr .\include\*.pdf
+	del -fr .\include\*.toc
+	del -fr .\include\*.xdv
