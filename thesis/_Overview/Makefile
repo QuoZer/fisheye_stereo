@@ -1,16 +1,23 @@
-all:
-	make pdf
-	make pdf
+all: pdf pdf
 
 pdf:
 	pdflatex report.tex
 	bibtex
+	pdflatex report.tex
+
+texmk: 
+	latexmk -xelatex \
+	-synctex=1 report.tex
 
 clean:
-	rm -f *.aux
-	rm -f *.bbl
-	rm -f *.blg
-	rm -f *.log
-	rm -f *.out
-	rm -f *.pdf
-	rm -f *.toc
+	del -fr *.aux
+	del -fr *.bbl
+	del -fr *.blg
+	del -fr *.log
+	del -fr *.out
+	del -fr *.toc
+	del -fr *.dvi
+	del -fr *.fls
+	del -fr *.fdb_latexmk
+	del -fr *.synctex.gz
+	del -fr *.xdv
