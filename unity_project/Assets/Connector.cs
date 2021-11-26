@@ -247,7 +247,7 @@ public class Connector : MonoBehaviour
         unsafe {
             //AllocConsole();
             sgbm = new SGBMparams();
-            imageProcessingThread = new DisaprityCalculator(width, height, showImages, cam1XRot, cam2XRot);
+            //imageProcessingThread = new DisaprityCalculator(width, height, showImages, cam1XRot, cam2XRot);
         }
 
     }
@@ -261,16 +261,14 @@ public class Connector : MonoBehaviour
         // fills 'sgbm' structure with slider values 
         fillStereoParams();
 
-
         // update the Thread class with new data
         if (!threadStarted)         // imageprocessing thread hasn't been started before
         {
             Debug.Log("Starting thread");
-            imageProcessingThread.Start();      // start the thread
+            //imageProcessingThread.Start();      // start the thread
             threadStarted = true;
         }
-        //Debug.Log(camTex1.GetPixels32().Length);
-        imageProcessingThread.Update(camTex1.GetPixels32(), camTex2.GetPixels32(), sgbm);
+        //imageProcessingThread.Update(camTex1.GetPixels32(), camTex2.GetPixels32(), sgbm);
         Destroy(camTex1);
         Destroy(camTex2);
         //TextureToCVMat(camTex1, camTex2);
