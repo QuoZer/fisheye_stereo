@@ -2,7 +2,7 @@ all: pdf pdf
 
 pdf:
 	pdflatex report.tex
-	bibtex
+	bibtex refs.bib
 	pdflatex report.tex
 
 texmk: 
