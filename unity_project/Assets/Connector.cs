@@ -39,24 +39,20 @@ public class ThreadInitializer: MultiThreading.ThreadedJob
     unsafe private static extern int initialize(int width, int height, int num, int leftRot, int rightRot);
 }
 
-public class DisaprityCalculator        // TODO: tidy up here a little. Move to another file
+public class DisaprityCalculator
 {
     public int code;  // out error code 
-
-    private Color32[] rawColor1 = new Color32[1080 * 1080]; 
-    private Color32[] rawColor2 = new Color32[1080 * 1080];
-    private int leftYaw;
-    private int rightYaw;
-    private int width;
-    private int height;
-    private bool showImages;
-    private bool lutsReady = false;
-    private bool processingFrame = false;
-    private bool ApplicationIsRunning = true;
-    private SGBMparams sgbm;
-    private unsafe Color32** imagePtr;
-    private EventWaitHandle ChildThreadWait = new EventWaitHandle(true, EventResetMode.ManualReset);
-    private EventWaitHandle MainThreadWait = new EventWaitHandle(true, EventResetMode.ManualReset);
+    Color32[] rawColor1; 
+    Color32[] rawColor2;
+    int width;
+    int height;
+    bool showImages;
+    bool parametersUpdated = false;
+    bool processingFrame = false;
+    SGBMparams sgbm;
+    unsafe Color32** imagePtr;
+    EventWaitHandle ChildThreadWait = new EventWaitHandle(true, EventResetMode.ManualReset);
+    EventWaitHandle MainThreadWait = new EventWaitHandle(true, EventResetMode.ManualReset);
 
     private System.Threading.Thread m_Thread = null;
     private bool m_IsDone = false;
@@ -74,15 +70,31 @@ public class DisaprityCalculator        // TODO: tidy up here a little. Move to 
         }
     }
 
-    public DisaprityCalculator(int w, int h, bool show, int leftAngle, int rightAngle)
+    public DisaprityCalculator(int w, int h, bool show)
     {
         width = w;
         height = h;
         showImages = show;
-        leftYaw = leftAngle;
-        rightYaw = rightAngle;
+        Debug.Log("Parameters Set");
+    }
 
-        Debug.Log("Initial parameters Set");
+    unsafe protected void TextureToMat()
+    {
+        //Debug.Log("Pre Start");
+        
+        Color32*[] rawColors = new Color32*[2];
+        
+        fixed (Color32* p1 = rawColor1, p2 = rawColor2)
+        {
+            rawColors[0] = p1;
+            rawColors[1] = p2;
+            fixed (Color32** pointer = rawColors)
+            {
+                code = getImages((IntPtr)pointer, width, height, 2, showImages, sgbm);
+            }
+            
+        }
+
     }
 
     private void Run()
@@ -98,26 +110,24 @@ public class DisaprityCalculator        // TODO: tidy up here a little. Move to 
     }
     public void Abort()
     {
-        ApplicationIsRunning = false;
-
-        //m_Thread.Abort();
+        m_Thread.Abort();
     }
 
     public void Update(Color32[] rawImg1, Color32[] rawImg2, SGBMparams stereoparams)
     {   
-        // Update is called every frame from the main thread Update(). We don't want to mess with the data while the image is processed.
+        // Update is called every frame from the main thred Update(). We don't want to mess with the data while the image is processed.
         if (!processingFrame)
         {
             MainThreadWait.WaitOne();
             MainThreadWait.Reset();
 
             // copying into this thread memory
-            Debug.Log("Img pixel: " + rawImg1[582660]);
-            rawImg1.CopyTo(rawColor1, 0);
-            rawImg2.CopyTo(rawColor2, 0);
+            rawColor1 = rawImg1;
+            rawColor2 = rawImg2;
             sgbm = stereoparams;
 
             ChildThreadWait.Set();
+
         }
     }
 
@@ -125,12 +135,8 @@ public class DisaprityCalculator        // TODO: tidy up here a little. Move to 
     {
         ChildThreadWait.Reset();
         ChildThreadWait.WaitOne();
-        // TODO: initialize blocks the main thread. Find out why
-        Debug.Log("Building LUTs with: w=" + width + ", h=" + height + ", lYaw=" + leftYaw + ", rYaw=" + rightYaw);
-        code = initialize(width, height, 2, leftYaw, rightYaw);
-        if (code == 0) Debug.Log("LUTs ready, proceeding to the loop");
 
-        while (ApplicationIsRunning)
+        while (true)
         {
             ChildThreadWait.Reset();
 
@@ -141,42 +147,13 @@ public class DisaprityCalculator        // TODO: tidy up here a little. Move to 
 
             WaitHandle.SignalAndWait(MainThreadWait, ChildThreadWait);
         }
-
-        terminate();        
-    }
-
-    unsafe protected void TextureToMat()
-    {
-        Color32*[] rawColors = new Color32*[2];
-        
-        fixed (Color32* p1 = rawColor1, p2 = rawColor2)
-        {
-            rawColors[0] = p1;
-            rawColors[1] = p2;
-            Debug.Log("Color pixel: " + rawColors[0][582660]);
-            fixed (Color32** pointer = rawColors)
-            {
-                code = getImages((IntPtr)pointer, width, height, 2, showImages, sgbm);      // TODO: wtf is happening inside, images are getting through for sure
-                //takeStereoScreenshot((IntPtr)pointer, width, height, 0, 1, showImages);
-
-            }
-        }
     }
 
     [DllImport("unity_plugin", EntryPoint = "getImages")]
     unsafe private static extern int getImages(IntPtr raw, int width, int height, int numOfImg, bool isShow, SGBMparams sgbm);
-
-    [DllImport("unity_plugin", EntryPoint = "takeScreenshot")]
-    unsafe private static extern int takeScreenshot(IntPtr raw, int width, int height, int numOfCam, bool isShow);
-
     [DllImport("unity_plugin", EntryPoint = "takeStereoScreenshot")]
     unsafe private static extern int takeStereoScreenshot(IntPtr raw, int width, int height, int numOfCam1, int numOfCam2, bool isShow);
 
-    [DllImport("unity_plugin", EntryPoint = "initialize")]
-    unsafe private static extern int initialize(int width, int height, int num, int leftRot, int rightRot);
-
-    [DllImport("unity_plugin", EntryPoint = "terminate")]
-    unsafe private static extern void terminate();
 }
 
 public struct SGBMparams
@@ -234,12 +211,6 @@ public class Connector : MonoBehaviour
     public int gap = 40;
     //bool isPanoReady = false;
 
-    bool pano = false;
-    // Threading stuff
-    DisaprityCalculator imageProcessingThread;
-    bool threadStarted = false;
-    bool initFlag = false;
-
     // Start is called before the first frame update
     void Start()
     {
@@ -252,10 +223,16 @@ public class Connector : MonoBehaviour
 
     }
 
+    bool pano = false;
+    // Threading stuff
+    DisaprityCalculator imageProcessingThread = new DisaprityCalculator(width, height, showImages);
+    bool threadStarted = false;
+    bool initFlag = false;
 
     // Update is called once per frame
     void Update()
     {
+
         camTex1 = CameraToTexture2D(camera1);
         camTex2 = CameraToTexture2D(camera2);
         // fills 'sgbm' structure with slider values 
@@ -299,9 +276,8 @@ public class Connector : MonoBehaviour
 
     void OnApplicationQuit()
     {
-        //terminate();
+        terminate();
         pixelHandle.Free();
-        imageProcessingThread.Abort();
     }
 
     void OnGUI()
@@ -320,7 +296,7 @@ public class Connector : MonoBehaviour
 
         yield return StartCoroutine(thread.WaitFor());
 
-        initFlag = thread.code == 0;
+        initFlag = thread.code == 0 ? true : false;
         if (initFlag)
         {
             thread.Abort();
