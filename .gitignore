@@ -12,3 +12,4 @@ thesis/_Overview/report.synctex.gz
 *.fls
 unity_project/.vs/unity_project/v16/.suo
 unity_project/.vs/unity_project/v16/Browse.VC.db
+*.toc
