@@ -129,8 +129,9 @@ public class DisaprityCalculator
         ChildThreadWait.Reset();
         ChildThreadWait.WaitOne();
 
-        //processingFrame = true;
-        //initialize(width, height, 2, leftYaw, rightYaw);
+        Debug.Log("Building LUTs with: w=" + width + ", h=" + height + ", lYaw=" + leftYaw + ", rYaw=" + rightYaw);
+        code = initialize(width, height, 2, leftYaw, rightYaw);
+        if (code == 0) Debug.Log("LUTs ready, proceeding...");
 
         while (threadIsRunning)
         {
@@ -154,10 +155,14 @@ public class DisaprityCalculator
 
             WaitHandle.SignalAndWait(MainThreadWait, ChildThreadWait);
         }
-        MainThreadWait.Set();
+
+        terminate();
+        //MainThreadWait.Set();
         //m_Thread.Abort();           // TODO: seems like it aborts the wrong thread (everything just suddenly closes)
     }
 
+    [DllImport("unity_plugin", EntryPoint = "terminate")]
+    unsafe private static extern void terminate();
     [DllImport("unity_plugin", EntryPoint = "getImages")]
     unsafe private static extern int getImages(IntPtr raw, int width, int height, int numOfImg, bool isShow, SGBMparams sgbm);
     [DllImport("unity_plugin", EntryPoint = "takeStereoScreenshot")]
@@ -240,7 +245,7 @@ public class Connector : MonoBehaviour
             //AllocConsole();
             sgbm = new SGBMparams();
             imageProcessingThread  = new DisaprityCalculator(width, height, showImages, cam1XRot, cam2XRot);
-            initialize(width, height, 2, cam1XRot, cam2XRot);
+            //initialize(width, height, 2, cam1XRot, cam2XRot);
         }
 
     }
@@ -292,7 +297,6 @@ public class Connector : MonoBehaviour
 
     void OnApplicationQuit()
     {
-        terminate();
         pixelHandle.Free();
         imageProcessingThread.Abort();
     }
