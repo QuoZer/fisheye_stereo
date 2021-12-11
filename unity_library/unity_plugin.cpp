@@ -90,13 +90,14 @@ extern "C"
         {
             rawData.push_back(0);
         }
-        //  Old ones (180 deg) 350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9)
-        left_dewarper.setIntrinsics(229.3778, -0.0016, 9.737 * pow(10, -7), -4.2154 * pow(10, -9), cv::Vec2d(0, 0), cv::Matx22d(1, 0, 0, 1), 0.022);        // 270 deg coefs
+        //  180 deg: 350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9)
+        //  270 deg: 229.3778, -0.0016, 9.737 * pow(10, -7), -4.2154 * pow(10, -9)
+        left_dewarper.setIntrinsics(350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9), cv::Vec2d(0, 0), cv::Matx22d(1, 0, 0, 1), 0.022);        // 270 deg coefs
         left_dewarper.setSize(cv::Size(1080, 1080), cv::Size(1080, 1080), 90);
         left_dewarper.setRpy(leftRot, 0, 0);
         left_dewarper.fillMaps(SCARAMUZZA);
 
-        right_dewarper.setIntrinsics(229.3778, -0.0016, 9.737 * pow(10, -7), -4.2154 * pow(10, -9), cv::Vec2d(0, 0), cv::Matx22d(1, 0, 0, 1), 0.022);
+        right_dewarper.setIntrinsics(350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9), cv::Vec2d(0, 0), cv::Matx22d(1, 0, 0, 1), 0.022);
         right_dewarper.setSize(cv::Size(1080, 1080), cv::Size(1080, 1080), 90);
         right_dewarper.setRpy(rightRot, 0, 0);
         right_dewarper.fillMaps(SCARAMUZZA);
@@ -147,8 +148,8 @@ extern "C"
         string left_path = "D:/Work/Coding/Repos/RTC_Practice/fisheye_stereo/data/stereo_img/l" + to_string(screenIndex) + "_shot.jpg";
         string right_path = "D:/Work/Coding/Repos/RTC_Practice/fisheye_stereo/data/stereo_img/r" + to_string(screenIndex) + "_shot.jpg";
 
-        cv::imwrite(left_path, left_dewarper.dewrapImage(cam1));
-        cv::imwrite(right_path, right_dewarper.dewrapImage(cam2));
+        cv::imwrite(left_path, cam1);
+        cv::imwrite(right_path, cam2);
 
         if (isShow)
         {

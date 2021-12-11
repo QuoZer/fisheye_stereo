@@ -1,4 +1,4 @@
-all: pdf pdf
+all: pdf pdf clean
 
 pdf:
 	pdflatex report.tex
@@ -8,6 +8,8 @@ pdf:
 texmk: 
 	latexmk -xelatex \
 	-synctex=1 report.tex
+
+	pdflatex report.t
 
 clean:
 	del -fr *.aux

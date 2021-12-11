@@ -11,34 +11,6 @@ using UnityEngine;
 using UnityEngine.UI;
 using MultiThreading;
 
-public class ThreadInitializer: MultiThreading.ThreadedJob
-{
-    public int code = -1;  // out error code 
-    int width;
-    int height;
-    int leftYaw;
-    int rightYaw;
-
-    public void SetParameters(int w, int h, int leftAngle, int rightAngle)
-    {
-        width = w;
-        height = h;
-        leftYaw = leftAngle;
-        rightYaw = rightAngle;
-    }
-
-    unsafe protected override void ThreadFunction()
-    {
-        Debug.Log("Initializing...");
-        code = initialize(width, height, 2, leftYaw, rightYaw);
-        Debug.Log("Closing thread with code:" + code);
-    }
-
-
-    [DllImport("unity_plugin", EntryPoint = "initialize")]
-    unsafe private static extern int initialize(int width, int height, int num, int leftRot, int rightRot);
-}
-
 public class DisaprityCalculator
 {
     public int code;  // out error code 
@@ -46,9 +18,13 @@ public class DisaprityCalculator
     Color32[] rawColor2;
     int width;
     int height;
+    int leftYaw;
+    int rightYaw;
     bool showImages;
     bool parametersUpdated = false;
     bool processingFrame = false;
+    bool threadIsRunning = true;
+    int action;
     SGBMparams sgbm;
     unsafe Color32** imagePtr;
     EventWaitHandle ChildThreadWait = new EventWaitHandle(true, EventResetMode.ManualReset);
@@ -70,18 +46,18 @@ public class DisaprityCalculator
         }
     }
 
-    public DisaprityCalculator(int w, int h, bool show)
+    public DisaprityCalculator(int w, int h, bool show, int cam1XRot, int cam2XRot)
     {
         width = w;
         height = h;
         showImages = show;
+        leftYaw = cam1XRot;
+        rightYaw = cam2XRot;
         Debug.Log("Parameters Set");
     }
 
     unsafe protected void TextureToMat()
     {
-        //Debug.Log("Pre Start");
-        
         Color32*[] rawColors = new Color32*[2];
         
         fixed (Color32* p1 = rawColor1, p2 = rawColor2)
@@ -97,6 +73,21 @@ public class DisaprityCalculator
 
     }
 
+    unsafe void Screenshoter()
+    {
+        Color32*[] rawColors = new Color32*[2];
+        fixed (Color32* p1 = rawColor1, p2 = rawColor2)
+        {
+            rawColors[0] = p1;
+            rawColors[1] = p2;
+            fixed (Color32** pointer = rawColors)
+            {
+                //takeScreenshot((IntPtr)pointer, width, height, numOfCam, show);
+                takeStereoScreenshot((IntPtr)pointer, width, height, 0, 1, true);
+            }
+        }
+    }
+
     private void Run()
     {
         ThreadFunction();
@@ -110,24 +101,26 @@ public class DisaprityCalculator
     }
     public void Abort()
     {
-        m_Thread.Abort();
+        threadIsRunning = false;
     }
 
-    public void Update(Color32[] rawImg1, Color32[] rawImg2, SGBMparams stereoparams)
+    public void Update(Color32[] rawImg1, Color32[] rawImg2, SGBMparams stereoparams, int inpAction)          // , IntPtr data
     {   
         // Update is called every frame from the main thred Update(). We don't want to mess with the data while the image is processed.
         if (!processingFrame)
         {
-            MainThreadWait.WaitOne();
+            //MainThreadWait.WaitOne();
             MainThreadWait.Reset();
 
             // copying into this thread memory
             rawColor1 = rawImg1;
             rawColor2 = rawImg2;
             sgbm = stereoparams;
+            action = inpAction;
+            //processImage(data, width, height);
 
             ChildThreadWait.Set();
-
+            //WaitHandle.SignalAndWait(ChildThreadWait, MainThreadWait);
         }
     }
 
@@ -136,23 +129,43 @@ public class DisaprityCalculator
         ChildThreadWait.Reset();
         ChildThreadWait.WaitOne();
 
-        while (true)
+        //processingFrame = true;
+        //initialize(width, height, 2, leftYaw, rightYaw);
+
+        while (threadIsRunning)
         {
             ChildThreadWait.Reset();
-
+            Debug.Log("Current action="+action);
             processingFrame = true;
-            TextureToMat();
+            switch (action)
+            {
+                case 0:
+                    TextureToMat();
+                    break;
+                case 1:
+                    Screenshoter();
+                    break;
+                case 2:
+                    initialize(width, height, 2, leftYaw, rightYaw);
+                    break;
+            }
+            action = 0;
             processingFrame = false;
-            //Debug.Log("image processed");
 
             WaitHandle.SignalAndWait(MainThreadWait, ChildThreadWait);
         }
+        MainThreadWait.Set();
+        //m_Thread.Abort();           // TODO: seems like it aborts the wrong thread (everything just suddenly closes)
     }
 
     [DllImport("unity_plugin", EntryPoint = "getImages")]
     unsafe private static extern int getImages(IntPtr raw, int width, int height, int numOfImg, bool isShow, SGBMparams sgbm);
     [DllImport("unity_plugin", EntryPoint = "takeStereoScreenshot")]
     unsafe private static extern int takeStereoScreenshot(IntPtr raw, int width, int height, int numOfCam1, int numOfCam2, bool isShow);
+    [DllImport("unity_plugin", EntryPoint = "processImage")]
+    unsafe private static extern void processImage(IntPtr data, int width, int height);
+    [DllImport("unity_plugin", EntryPoint = "initialize")]
+    unsafe private static extern int initialize(int width, int height, int num, int leftRot, int rightRot);
 
 }
 
@@ -209,7 +222,15 @@ public class Connector : MonoBehaviour
     private Rect readingRect;
     int isOk = 0;
     public int gap = 40;
+    int actionId = 0;
     //bool isPanoReady = false;
+
+
+    bool pano = false;
+    // Threading stuff
+    DisaprityCalculator imageProcessingThread;
+    bool threadStarted = false;
+    bool initFlag = false;
 
     // Start is called before the first frame update
     void Start()
@@ -218,91 +239,67 @@ public class Connector : MonoBehaviour
         unsafe {
             //AllocConsole();
             sgbm = new SGBMparams();
-            //imageProcessingThread = new DisaprityCalculator(width, height, showImages, cam1XRot, cam2XRot);
+            imageProcessingThread  = new DisaprityCalculator(width, height, showImages, cam1XRot, cam2XRot);
+            initialize(width, height, 2, cam1XRot, cam2XRot);
         }
 
     }
-
-    bool pano = false;
-    // Threading stuff
-    DisaprityCalculator imageProcessingThread = new DisaprityCalculator(width, height, showImages);
-    bool threadStarted = false;
-    bool initFlag = false;
-
     // Update is called once per frame
     void Update()
     {
-
         camTex1 = CameraToTexture2D(camera1);
         camTex2 = CameraToTexture2D(camera2);
-        // fills 'sgbm' structure with slider values 
-        fillStereoParams();
 
-        // update the Thread class with new data
-        if (!threadStarted)         // imageprocessing thread hasn't been started before
-        {
-            Debug.Log("Starting thread");
-            //imageProcessingThread.Start();      // start the thread
-            threadStarted = true;
-        }
-        //imageProcessingThread.Update(camTex1.GetPixels32(), camTex2.GetPixels32(), sgbm);
-        Destroy(camTex1);
-        Destroy(camTex2);
-        //TextureToCVMat(camTex1, camTex2);
+        fillStereoParams();        // fills 'sgbm' structure with slider values 
+        actionId = 0;               // Default to update action
 
-
-
+        /* Update texture in the world */
         if (Input.GetKeyUp("[1]")) {
-            InitTexture();
+            /*InitTexture();
             bowl.GetComponent<Renderer>().material.mainTexture = tex;
-            MatToTexture2D();
+            MatToTexture2D();*/
+            // TODO: World texture renderer
         }
-
-        if (Input.GetKeyUp("[2]")) {
-            // pano = !pano;        //idk
-            Screenshoter(camTex1, camTex2, 0, true);
-        }
-
         if (pano) {
             MatToTexture2D();
         }
-
-        if (Input.GetKeyUp("[3]")) {
-            initialize(width, height, 1, cam1XRot, cam2XRot);
+        /* Take screenshot */
+        if (Input.GetKeyUp("[2]")) {
+            Debug.Log("Two pressed");
+            // pano = !pano;        //idk
+            // Screenshoter(camTex1, camTex2, 0, true);
+            actionId = 1;
         }
-
-        System.GC.Collect();        // doesn't seem to fix leaking
+        /* Reinitialize */
+        if (Input.GetKeyUp("[3]")) {
+            actionId = 2;
+            // initialize(width, height, 1, cam1XRot, cam2XRot);
+        }
+        /* Start the second thread */
+        if (!threadStarted)         // image processing thread hasn't been started before
+        {
+            Debug.Log("Starting thread");
+            imageProcessingThread.Start();      // start the thread
+            threadStarted = true;
+        }
+        /* Pass the data to the thread */
+        imageProcessingThread.Update(camTex1.GetPixels32(), camTex2.GetPixels32(), sgbm, actionId);
+        /* textures are not erased by the GC automatically */
+        Destroy(camTex1);
+        Destroy(camTex2);
     }
+
 
     void OnApplicationQuit()
     {
         terminate();
         pixelHandle.Free();
+        imageProcessingThread.Abort();
     }
 
     void OnGUI()
     {
         GUI.Label(new Rect(0, 0, 100, 100), (1.0f / (Time.smoothDeltaTime)).ToString());
-    }
-
-
-
-    IEnumerator Initializer()
-    {
-        ThreadInitializer thread = new ThreadInitializer();
-        thread.SetParameters(width, height, cam1XRot, cam2XRot);
-        Debug.Log("Starting init thread");
-        thread.Start();
-
-        yield return StartCoroutine(thread.WaitFor());
-
-        initFlag = thread.code == 0 ? true : false;
-        if (initFlag)
-        {
-            thread.Abort();
-            Debug.Log("Aborting init thread");
-        }
-        
     }
 
     private Texture2D CameraToTexture2D(Camera camera)

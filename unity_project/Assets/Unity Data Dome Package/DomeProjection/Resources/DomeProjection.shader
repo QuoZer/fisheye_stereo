@@ -138,7 +138,7 @@ Shader "Hidden/ZubrVR/DomeProjection"
 			{
 				// Center and radius of a perfect circle centered in the middle of the screen.
 				float2 c  = _ScreenParams.xy * 0.5f;
-				float  r  = min(c.x, c.y);
+				float  r  = max(c.x, c.y);
 
 				// Position of the current pixel relative to the circle.
 				float2 p  = i.uv * _ScreenParams.xy - c;
