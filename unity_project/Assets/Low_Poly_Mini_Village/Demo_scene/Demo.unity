@@ -1630,9 +1630,6 @@ MonoBehaviour:
   speckleRange: {fileID: 1314730454}
   speckleWindowSize: {fileID: 99062302}
   disp12MaxDiff: {fileID: 446673523}
-  width: 1080
-  height: 1080
-  showImages: 1
   showPano: 0
   gap: 40
 --- !u!1 &701017416
@@ -4770,6 +4767,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: DP Left
       objectReference: {fileID: 0}
+    - target: {fileID: 120082, guid: 8c8a8f77e8699403ab6c0d4b8fe24c16, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 419338, guid: 8c8a8f77e8699403ab6c0d4b8fe24c16, type: 3}
       propertyPath: m_LocalPosition.x
       value: -0.6645508
@@ -4845,6 +4846,18 @@ PrefabInstance:
     - target: {fileID: 2058622, guid: 8c8a8f77e8699403ab6c0d4b8fe24c16, type: 3}
       propertyPath: m_BackGroundColor.b
       value: 0.4156863
+      objectReference: {fileID: 0}
+    - target: {fileID: 11411158, guid: 8c8a8f77e8699403ab6c0d4b8fe24c16, type: 3}
+      propertyPath: m_Enabled
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 154380, guid: 8c8a8f77e8699403ab6c0d4b8fe24c16, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 149398, guid: 8c8a8f77e8699403ab6c0d4b8fe24c16, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 8c8a8f77e8699403ab6c0d4b8fe24c16, type: 3}
@@ -4935,17 +4948,17 @@ PrefabInstance:
     - target: {fileID: 7264190468500233968, guid: d0f67dd61cac0014aa5470b7037497c0,
         type: 3}
       propertyPath: m_LocalPosition.x
-      value: 54.51
+      value: 30.49
       objectReference: {fileID: 0}
     - target: {fileID: 7264190468500233968, guid: d0f67dd61cac0014aa5470b7037497c0,
         type: 3}
       propertyPath: m_LocalPosition.y
-      value: 14.41
+      value: 4.84
       objectReference: {fileID: 0}
     - target: {fileID: 7264190468500233968, guid: d0f67dd61cac0014aa5470b7037497c0,
         type: 3}
       propertyPath: m_LocalPosition.z
-      value: -7.91
+      value: 0.88
       objectReference: {fileID: 0}
     - target: {fileID: 7264190468500233968, guid: d0f67dd61cac0014aa5470b7037497c0,
         type: 3}

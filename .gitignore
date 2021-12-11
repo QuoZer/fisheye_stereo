@@ -13,3 +13,4 @@ thesis/_Overview/report.synctex.gz
 unity_project/.vs/unity_project/v16/.suo
 unity_project/.vs/unity_project/v16/Browse.VC.db
 unity_project/Assets/Plugins/unity_plugin.dll
+*.toc
