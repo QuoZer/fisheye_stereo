@@ -1,10 +1,30 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Threading;
+using System;
+using System.Runtime.InteropServices;
 
 namespace MultiThreading
 {
-    public class ThreadedJob
+    public class DisaprityCalculator
     {
+        public int code;  // out error code 
+        Color32[] rawColor1;
+        Color32[] rawColor2;
+        int width;
+        int height;
+        int leftYaw;
+        int rightYaw;
+        bool showImages;
+        bool parametersUpdated = false;
+        bool processingFrame = false;
+        bool threadIsRunning = true;
+        int action;
+        SGBMparams sgbm;
+        unsafe Color32** imagePtr;
+        EventWaitHandle ChildThreadWait = new EventWaitHandle(true, EventResetMode.ManualReset);
+        EventWaitHandle MainThreadWait = new EventWaitHandle(true, EventResetMode.ManualReset);
+
         private System.Threading.Thread m_Thread = null;
         private bool m_IsDone = false;
         public bool IsDone
@@ -20,49 +40,133 @@ namespace MultiThreading
                 m_IsDone = value;
             }
         }
-        public virtual void SetAffinity()
+
+        public DisaprityCalculator(int w, int h, bool show, int cam1XRot, int cam2XRot)
         {
-            m_Thread.Priority = System.Threading.ThreadPriority.Highest;
-            m_Thread.IsBackground = true;
-        }
-        public virtual void Start()
-        {
-            PreStart();
-            m_Thread = new System.Threading.Thread(Run);
-            m_Thread.Start();
-        }
-        public virtual void Abort()
-        {
-            m_Thread.Abort();
+            width = w;
+            height = h;
+            showImages = show;
+            leftYaw = cam1XRot;
+            rightYaw = cam2XRot;
+            Debug.Log("Parameters Set");
         }
 
-        protected virtual void PreStart() { }
-
-        protected virtual void ThreadFunction() { }
-
-        protected virtual void OnFinished() { }
-
-        public virtual bool Update()
+        unsafe protected void TextureToMat()
         {
-            if (IsDone)
+            Color32*[] rawColors = new Color32*[2];
+
+            fixed (Color32* p1 = rawColor1, p2 = rawColor2)
             {
-                OnFinished();
-                return true;
+                rawColors[0] = p1;
+                rawColors[1] = p2;
+                fixed (Color32** pointer = rawColors)
+                {
+                    code = getImages((IntPtr)pointer, width, height, 2, showImages, sgbm);
+                }
+
             }
-            return false;
+
         }
-        public IEnumerator WaitFor()
+
+        unsafe void Screenshoter()
         {
-            while (!Update())
+            Color32*[] rawColors = new Color32*[2];
+            fixed (Color32* p1 = rawColor1, p2 = rawColor2)
             {
-                yield return null;
+                rawColors[0] = p1;
+                rawColors[1] = p2;
+                fixed (Color32** pointer = rawColors)
+                {
+                    //takeScreenshot((IntPtr)pointer, width, height, numOfCam, show);
+                    takeStereoScreenshot((IntPtr)pointer, width, height, 0, 1, true);
+                }
             }
         }
+
         private void Run()
         {
             ThreadFunction();
             IsDone = true;
         }
+
+        public void Start()
+        {
+            m_Thread = new System.Threading.Thread(Run);
+            m_Thread.Start();
+        }
+        public void Abort()
+        {
+            threadIsRunning = false;
+        }
+
+        public void Update(Color32[] rawImg1, Color32[] rawImg2, SGBMparams stereoparams, int inpAction)          // , IntPtr data
+        {
+            // Update is called every frame from the main thred Update(). We don't want to mess with the data while the image is processed.
+            if (!processingFrame)
+            {
+                //MainThreadWait.WaitOne();
+                MainThreadWait.Reset();
+
+                // copying into this thread memory
+                rawColor1 = rawImg1;
+                rawColor2 = rawImg2;
+                sgbm = stereoparams;
+                action = inpAction;
+                //processImage(data, width, height);
+
+                ChildThreadWait.Set();
+                //WaitHandle.SignalAndWait(ChildThreadWait, MainThreadWait);
+            }
+        }
+
+        unsafe protected void ThreadFunction()
+        {
+            ChildThreadWait.Reset();
+            ChildThreadWait.WaitOne();
+
+            Debug.Log("Building LUTs with: w=" + width + ", h=" + height + ", lYaw=" + leftYaw + ", rYaw=" + rightYaw);
+            code = initialize(width, height, 2, leftYaw, rightYaw);
+            if (code == 0) Debug.Log("LUTs ready, proceeding...");
+
+            while (threadIsRunning)
+            {
+                ChildThreadWait.Reset();
+                Debug.Log("Current action=" + action);
+                processingFrame = true;
+                switch (action)
+                {
+                    case 0:
+                        TextureToMat();
+                        break;
+                    case 1:
+                        Screenshoter();
+                        break;
+                    case 2:
+                        initialize(width, height, 2, leftYaw, rightYaw);
+                        break;
+                }
+                action = 0;
+                processingFrame = false;
+
+                WaitHandle.SignalAndWait(MainThreadWait, ChildThreadWait);
+            }
+
+            terminate();
+            //MainThreadWait.Set();
+            //m_Thread.Abort();           // TODO: seems like it aborts the wrong thread (everything just suddenly closes)
+        }
+
+        [DllImport("unity_plugin", EntryPoint = "terminate")]
+        unsafe private static extern void terminate();
+        [DllImport("unity_plugin", EntryPoint = "getImages")]
+        unsafe private static extern int getImages(IntPtr raw, int width, int height, int numOfImg, bool isShow, SGBMparams sgbm);
+        [DllImport("unity_plugin", EntryPoint = "takeStereoScreenshot")]
+        unsafe private static extern int takeStereoScreenshot(IntPtr raw, int width, int height, int numOfCam1, int numOfCam2, bool isShow);
+        [DllImport("unity_plugin", EntryPoint = "processImage")]
+        unsafe private static extern void processImage(IntPtr data, int width, int height);
+        [DllImport("unity_plugin", EntryPoint = "initialize")]
+        unsafe private static extern int initialize(int width, int height, int num, int leftRot, int rightRot);
+
     }
 }
 

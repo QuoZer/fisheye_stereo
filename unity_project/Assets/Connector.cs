@@ -11,168 +11,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using MultiThreading;
 
-public class DisaprityCalculator
-{
-    public int code;  // out error code 
-    Color32[] rawColor1; 
-    Color32[] rawColor2;
-    int width;
-    int height;
-    int leftYaw;
-    int rightYaw;
-    bool showImages;
-    bool parametersUpdated = false;
-    bool processingFrame = false;
-    bool threadIsRunning = true;
-    int action;
-    SGBMparams sgbm;
-    unsafe Color32** imagePtr;
-    EventWaitHandle ChildThreadWait = new EventWaitHandle(true, EventResetMode.ManualReset);
-    EventWaitHandle MainThreadWait = new EventWaitHandle(true, EventResetMode.ManualReset);
 
-    private System.Threading.Thread m_Thread = null;
-    private bool m_IsDone = false;
-    public bool IsDone
-    {
-        get
-        {
-            bool tmp;
-            tmp = m_IsDone;
-            return tmp;
-        }
-        set
-        {
-            m_IsDone = value;
-        }
-    }
-
-    public DisaprityCalculator(int w, int h, bool show, int cam1XRot, int cam2XRot)
-    {
-        width = w;
-        height = h;
-        showImages = show;
-        leftYaw = cam1XRot;
-        rightYaw = cam2XRot;
-        Debug.Log("Parameters Set");
-    }
-
-    unsafe protected void TextureToMat()
-    {
-        Color32*[] rawColors = new Color32*[2];
-        
-        fixed (Color32* p1 = rawColor1, p2 = rawColor2)
-        {
-            rawColors[0] = p1;
-            rawColors[1] = p2;
-            fixed (Color32** pointer = rawColors)
-            {
-                code = getImages((IntPtr)pointer, width, height, 2, showImages, sgbm);
-            }
-            
-        }
-
-    }
-
-    unsafe void Screenshoter()
-    {
-        Color32*[] rawColors = new Color32*[2];
-        fixed (Color32* p1 = rawColor1, p2 = rawColor2)
-        {
-            rawColors[0] = p1;
-            rawColors[1] = p2;
-            fixed (Color32** pointer = rawColors)
-            {
-                //takeScreenshot((IntPtr)pointer, width, height, numOfCam, show);
-                takeStereoScreenshot((IntPtr)pointer, width, height, 0, 1, true);
-            }
-        }
-    }
-
-    private void Run()
-    {
-        ThreadFunction();
-        IsDone = true;
-    }
-
-    public void Start()
-    {
-        m_Thread = new System.Threading.Thread(Run);
-        m_Thread.Start();
-    }
-    public void Abort()
-    {
-        threadIsRunning = false;
-    }
-
-    public void Update(Color32[] rawImg1, Color32[] rawImg2, SGBMparams stereoparams, int inpAction)          // , IntPtr data
-    {   
-        // Update is called every frame from the main thred Update(). We don't want to mess with the data while the image is processed.
-        if (!processingFrame)
-        {
-            //MainThreadWait.WaitOne();
-            MainThreadWait.Reset();
-
-            // copying into this thread memory
-            rawColor1 = rawImg1;
-            rawColor2 = rawImg2;
-            sgbm = stereoparams;
-            action = inpAction;
-            //processImage(data, width, height);
-
-            ChildThreadWait.Set();
-            //WaitHandle.SignalAndWait(ChildThreadWait, MainThreadWait);
-        }
-    }
-
-    unsafe protected void ThreadFunction()
-    {
-        ChildThreadWait.Reset();
-        ChildThreadWait.WaitOne();
-
-        Debug.Log("Building LUTs with: w=" + width + ", h=" + height + ", lYaw=" + leftYaw + ", rYaw=" + rightYaw);
-        code = initialize(width, height, 2, leftYaw, rightYaw);
-        if (code == 0) Debug.Log("LUTs ready, proceeding...");
-
-        while (threadIsRunning)
-        {
-            ChildThreadWait.Reset();
-            Debug.Log("Current action="+action);
-            processingFrame = true;
-            switch (action)
-            {
-                case 0:
-                    TextureToMat();
-                    break;
-                case 1:
-                    Screenshoter();
-                    break;
-                case 2:
-                    initialize(width, height, 2, leftYaw, rightYaw);
-                    break;
-            }
-            action = 0;
-            processingFrame = false;
-
-            WaitHandle.SignalAndWait(MainThreadWait, ChildThreadWait);
-        }
-
-        terminate();
-        //MainThreadWait.Set();
-        //m_Thread.Abort();           // TODO: seems like it aborts the wrong thread (everything just suddenly closes)
-    }
-
-    [DllImport("unity_plugin", EntryPoint = "terminate")]
-    unsafe private static extern void terminate();
-    [DllImport("unity_plugin", EntryPoint = "getImages")]
-    unsafe private static extern int getImages(IntPtr raw, int width, int height, int numOfImg, bool isShow, SGBMparams sgbm);
-    [DllImport("unity_plugin", EntryPoint = "takeStereoScreenshot")]
-    unsafe private static extern int takeStereoScreenshot(IntPtr raw, int width, int height, int numOfCam1, int numOfCam2, bool isShow);
-    [DllImport("unity_plugin", EntryPoint = "processImage")]
-    unsafe private static extern void processImage(IntPtr data, int width, int height);
-    [DllImport("unity_plugin", EntryPoint = "initialize")]
-    unsafe private static extern int initialize(int width, int height, int num, int leftRot, int rightRot);
-
-}
 
 public struct SGBMparams
 {
@@ -188,8 +27,6 @@ public struct SGBMparams
     public byte speckleWindowSize;
 };
 
-
-
 public class Connector : MonoBehaviour
 {
     [Header("Cameras")]
@@ -198,8 +35,16 @@ public class Connector : MonoBehaviour
     public Camera camera2;
     public int cam2XRot;
 
-    [Header("Bowl")]
-    public GameObject bowl;
+    [Header("Screens")]
+    public GameObject disparityScreen;
+    // for bowl
+    private int dispScreenWidth = 1080;
+    private int dispScreenHeight = 1080;
+    private Texture2D dispScreenTexture;
+    private Color32[] dispScreenPixels;
+    private GCHandle pixelHandle;
+    private IntPtr pixelPtr;
+
 
     [Header("Sliders")]
     public Slider preFilterSize;
@@ -228,8 +73,6 @@ public class Connector : MonoBehaviour
     int isOk = 0;
     public int gap = 40;
     int actionId = 0;
-    //bool isPanoReady = false;
-
 
     bool pano = false;
     // Threading stuff
@@ -260,25 +103,20 @@ public class Connector : MonoBehaviour
 
         /* Update texture in the world */
         if (Input.GetKeyUp("[1]")) {
-            /*InitTexture();
-            bowl.GetComponent<Renderer>().material.mainTexture = tex;
-            MatToTexture2D();*/
+            InitTexture();
+            disparityScreen.GetComponent<Renderer>().material.mainTexture = dispScreenTexture;
+            MatToTexture2D();
+            Debug.Log("Updating world texture");
             // TODO: World texture renderer
         }
-        if (pano) {
-            MatToTexture2D();
-        }
+
         /* Take screenshot */
         if (Input.GetKeyUp("[2]")) {
-            Debug.Log("Two pressed");
-            // pano = !pano;        //idk
-            // Screenshoter(camTex1, camTex2, 0, true);
             actionId = 1;
         }
         /* Reinitialize */
         if (Input.GetKeyUp("[3]")) {
             actionId = 2;
-            // initialize(width, height, 1, cam1XRot, cam2XRot);
         }
         /* Start the second thread */
         if (!threadStarted)         // image processing thread hasn't been started before
@@ -289,6 +127,7 @@ public class Connector : MonoBehaviour
         }
         /* Pass the data to the thread */
         imageProcessingThread.Update(camTex1.GetPixels32(), camTex2.GetPixels32(), sgbm, actionId);
+
         /* textures are not erased by the GC automatically */
         Destroy(camTex1);
         Destroy(camTex2);
@@ -375,31 +214,12 @@ public class Connector : MonoBehaviour
     }
 
 
-    // for bowl
-    private int polarWidth = 1080;
-    private int polarHeight = 1080;
-
-    private Texture2D tex;
-    private Color32[] pixel32;
-    private GCHandle pixelHandle;
-    private IntPtr pixelPtr;
-
-    public Texture2D getter_tex()
-    {
-        return tex;
-    }
-
-    public Color32[] getter_pix()
-    {
-        return pixel32;
-    }
-
     void InitTexture()
     {
-        tex = new Texture2D(polarWidth, polarHeight, TextureFormat.ARGB32, false);
-        pixel32 = tex.GetPixels32();
+        dispScreenTexture = new Texture2D(dispScreenWidth, dispScreenHeight, TextureFormat.ARGB32, false);
+        dispScreenPixels = dispScreenTexture.GetPixels32();
         //Pin pixel32 array
-        pixelHandle = GCHandle.Alloc(pixel32, GCHandleType.Pinned);
+        pixelHandle = GCHandle.Alloc(dispScreenPixels, GCHandleType.Pinned);
         //Get the pinned address
         pixelPtr = pixelHandle.AddrOfPinnedObject();
     }
@@ -407,10 +227,10 @@ public class Connector : MonoBehaviour
     unsafe void MatToTexture2D()
     {
         //Convert Mat to Texture2D
-        processImage(pixelPtr, polarWidth, polarHeight);
+        processImage(pixelPtr, dispScreenWidth, dispScreenHeight);
         //Update the Texture2D with array updated in C++
-        tex.SetPixels32(pixel32);
-        tex.Apply();
+        dispScreenTexture.SetPixels32(dispScreenPixels);
+        dispScreenTexture.Apply();
     }
     
     void fillStereoParams()
