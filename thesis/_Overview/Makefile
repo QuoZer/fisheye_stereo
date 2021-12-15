@@ -9,7 +9,7 @@ texmk:
 	latexmk -xelatex \
 	-synctex=1 report.tex
 
-	pdflatex report.t
+	pdflatex report.tex
 
 clean:
 	del -fr *.aux
