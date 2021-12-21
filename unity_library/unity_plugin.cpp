@@ -7,6 +7,9 @@
 #include <string>
 #include "../cpp_project/FisheyeDewarper.cpp"
 
+#define CAMERA_REGULAR 0
+#define CAMERA_FISHEYE 1
+
 using namespace std;
 
 extern "C"
@@ -28,6 +31,8 @@ extern "C"
     bool isShowed = false;
 
     cv::Mat output;
+    cv::Mat fisheyeDisparity;
+    cv::Mat regularDisparity;
 
     FisheyeDewarper left_dewarper;      // dewarper library object
     FisheyeDewarper right_dewarper;
@@ -90,19 +95,26 @@ extern "C"
         {
             rawData.push_back(0);
         }
-        //  180 deg: 350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9)
-        //  270 deg: 229.3778, -0.0016, 9.737 * pow(10, -7), -4.2154 * pow(10, -9)
-        left_dewarper.setIntrinsics(350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9), cv::Vec2d(0, 0), cv::Matx22d(1, 0, 0, 1), 0.022);        // 270 deg coefs
-        left_dewarper.setSize(cv::Size(1080, 1080), cv::Size(1080, 1080), 90);
-        left_dewarper.setRpy(leftRot, 0, 0);
-        left_dewarper.fillMaps(SCARAMUZZA);
 
-        right_dewarper.setIntrinsics(350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9), cv::Vec2d(0, 0), cv::Matx22d(1, 0, 0, 1), 0.022);
-        right_dewarper.setSize(cv::Size(1080, 1080), cv::Size(1080, 1080), 90);
-        right_dewarper.setRpy(rightRot, 0, 0);
-        right_dewarper.fillMaps(SCARAMUZZA);
+        if (leftRot != 0 || rightRot != 0) {        // TODO: find a better way ASAP
+            //  180 deg: 350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9)
+            //  270 deg: 229.3778, -0.0016, 9.737 * pow(10, -7), -4.2154 * pow(10, -9)
+            left_dewarper.setIntrinsics(350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9), cv::Vec2d(0, 0), cv::Matx22d(1, 0, 0, 1), 0.022);        // 270 deg coefs
+            left_dewarper.setSize(cv::Size(1080, 1080), cv::Size(1080, 1080), 90);
+            left_dewarper.setRpy(leftRot, 0, 0);
+            left_dewarper.fillMaps(SCARAMUZZA);
 
+            right_dewarper.setIntrinsics(350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9), cv::Vec2d(0, 0), cv::Matx22d(1, 0, 0, 1), 0.022);
+            right_dewarper.setSize(cv::Size(1080, 1080), cv::Size(1080, 1080), 90);
+            right_dewarper.setRpy(rightRot, 0, 0);
+            right_dewarper.fillMaps(SCARAMUZZA);
+        }
         stereo = cv::StereoSGBM::create();
+
+        if (leftRot != 0 || rightRot != 0)
+            cv::namedWindow("Fisheye disparity", cv::WindowFlags::WINDOW_AUTOSIZE);
+        else
+            cv::namedWindow("Regular disparity", cv::WindowFlags::WINDOW_AUTOSIZE);
 
         return 0;
     }
@@ -159,7 +171,7 @@ extern "C"
         return 0;
     }
 
-    int getImages(Color32** raw, int width, int height, int numOfImg, bool isShow, SGBMparams sgbm)
+    int getImages(Color32** raw, int width, int height, int numOfImg, int imageType, bool isShow, SGBMparams sgbm)
     {
         if (numOfImg < 1)
         {
@@ -174,13 +186,14 @@ extern "C"
                 frames[i] = cv::Mat(height, width, CV_8UC4, raw[i]);
                 cvtColor(frames[i], frames[i], cv::COLOR_BGRA2RGB);
                 flip(frames[i], frames[i], 0);
-                
-            }
 
-            frames[0] = left_dewarper.dewrapImage(frames[0]);    // undistort 
-            frames[1] = right_dewarper.dewrapImage(frames[1]);
+            }
+            if (imageType == CAMERA_FISHEYE) {
+                frames[0] = left_dewarper.dewrapImage(frames[0]);    // undistort 
+                frames[1] = right_dewarper.dewrapImage(frames[1]);
+            }
             fillStereoParams(sgbm);
-            cv::Mat disparity = calculateDisparities(frames[0], frames[1]);
+            cv::Mat disparity = calculateDisparities(frames[0], frames[1], imageType);
 
             if (isShow)
             {
@@ -230,120 +243,51 @@ extern "C"
         frames.clear();
         cv::destroyAllWindows();
     }
-
-    cv::Mat colorFilter(const cv::Mat& src, FilterValues filter)
-    {
-        assert(src.type() == CV_8UC3);
-        cv::Mat hsvimg, frame_threshold;
-
-        cvtColor(src, hsvimg, cv::COLOR_BGR2HSV);
-        // Detect the object based on HSV Range Values
-        inRange(hsvimg, cv::Scalar(filter.HLow, filter.SLow, filter.VLow), 
-                        cv::Scalar(filter.HHigh, filter.SHigh, filter.VHigh), frame_threshold);
-        
-        float mapCoef = 6;
-        //cv::Point2f centers 
-        string ang_coordinates = findCoordinates(frame_threshold, src, true);
-        string coordinates = "debug"; //" x: " + to_string(centers.x) + " y: " + to_string(centers.y);
-        //string ang_coordinates = " yaw: " + to_string(centers.x / mapCoef) + " pitch: " + to_string(centers.y / mapCoef);
-        string telemetry = " H: " + to_string(filter.HLow) + "/" + to_string(filter.HHigh) +  
-                           " S: " + to_string(filter.SLow) + "/" + to_string(filter.SHigh) + 
-                           " V: " + to_string(filter.VLow) + "/" + to_string(filter.VHigh);
-
-        cv::putText(src, telemetry, cv::Point(30, 50), cv::FONT_HERSHEY_SIMPLEX, 0.5,
-            cv::Scalar(255, 255, 255), 1, 8);
-
-        cv::putText(src, coordinates, cv::Point(800, 50), cv::FONT_HERSHEY_SIMPLEX, 0.5, 
-            cv::Scalar(255, 255, 255), 1, 8);
-        cv::putText(src, ang_coordinates, cv::Point(800, 100), cv::FONT_HERSHEY_SIMPLEX, 0.5,
-            cv::Scalar(255, 255, 255), 1, 8);
-
-        return src;
-    }
-
-    
 }
 
-
-string findCoordinates(const cv::Mat& binaryImage, const cv::Mat& imageToDrawOn, bool drawCenters)
-{
-    vector<vector<cv::Point> > contours;
-    vector<cv::Vec4i> hierarchy;
-    string coordinates;
-    string angles;
-
-    cv::findContours(binaryImage, contours, hierarchy, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
-    // get the moments
-    vector<cv::Moments> mu(contours.size());
-    for (int i = 0; i < contours.size(); i++)
+    void fillStereoParams(SGBMparams& sgbm)
     {
-        mu[i] = moments(contours[i], false);
+        stereo->setBlockSize(sgbm.blockSize * 2 + 5);
+        stereo->setPreFilterCap(sgbm.preFilterCap);
+        //stereo->setPreFilterSize(sgbm.preFilterSize*2+5);
+        stereo->setP1(sgbm.preFilterSize);
+        stereo->setMinDisparity(sgbm.minDisparity);
+        stereo->setNumDisparities(sgbm.numDisparities * 16);
+        //stereo->setTextureThreshold(sgbm.textureThreshold);
+        stereo->setP2(sgbm.textureThreshold);
+        stereo->setUniquenessRatio(sgbm.uniquenessRatio);
+        stereo->setSpeckleWindowSize(sgbm.speckleWindowSize * 2);
+        stereo->setSpeckleRange(sgbm.speckleRange);
+        stereo->setDisp12MaxDiff(sgbm.disp12MaxDiff);
+        // 2 pass expensive method
+        // stereo->setMode(cv::StereoSGBM::MODE_HH);
+
     }
 
-    float x0 = 539.5;           // image center 
-    float y0 = 539.5;
-    float mapCoef = 1;      // a coef to map resolution into angle (linear)
+    cv::Mat calculateDisparities(cv::Mat leftImage, cv::Mat rightImage, int cameraType) {
+        cv::Mat disp;
+        // Converting images to grayscale
+        cv::cvtColor(leftImage, leftImage, cv::COLOR_BGR2GRAY);
+        cv::cvtColor(rightImage, rightImage, cv::COLOR_BGR2GRAY);
 
-    // get the centroid of figures.
-    vector<cv::Point2f> mc(contours.size());
-    for (int i = 0; i < contours.size(); i++)       // size is usually equals 1, left it here just in case
-    {
-        mc[i] = cv::Point2f(mu[i].m10 / mu[i].m00, mu[i].m01 / mu[i].m00);
-        angles = " x: " + to_string((mc[i].x - x0) / mapCoef) + " y: " + to_string(-(mc[i].y - y0)/ mapCoef); // '-'y due to inverted coordinates
-    }
+        // Calculating disparith using the StereoBM algorithm
+        stereo->compute(leftImage, rightImage, disp);
 
-    // draw contours
-    if (drawCenters)
-    {
-        for (int i = 0; i < contours.size(); i++)
-        {
-            cv::Scalar color = cv::Scalar(167, 151, 0); // B G R values
-            drawContours(imageToDrawOn, contours, i, color, 2, 8, hierarchy, 0, cv::Point());
-            circle(imageToDrawOn, mc[i], 4, color, -1, 8, 0);
+        // Converting disparity values to CV_32F from CV_16S
+        disp.convertTo(disp, CV_32F, 1.0);
+
+        // Scaling down the disparity values and normalizing them 
+        disp = (disp / 16.0f - (float)stereo->getMinDisparity()) / ((float)stereo->getNumDisparities());
+
+        if (cameraType == 0) {
+            fisheyeDisparity = disp;
+            imshow("Regular disparity", fisheyeDisparity);
         }
+        if (cameraType == 1) {
+            regularDisparity = disp;
+            imshow("Fisheye disparity", regularDisparity);
+        }
+        cv::waitKey(1);
+
+        return disp;
     }
-    //mc[0].x = mc[0].x - x0;     // applying offset AFTER drawing circles
-    //mc[0].y = mc[0].y - y0;
-    
-    return angles;          
-}
-
-
-void fillStereoParams(SGBMparams& sgbm)
-{
-    stereo->setBlockSize(sgbm.blockSize*2+5);
-    stereo->setPreFilterCap(sgbm.preFilterCap);
-    //stereo->setPreFilterSize(sgbm.preFilterSize*2+5);
-    stereo->setP1(sgbm.preFilterSize);
-    stereo->setMinDisparity(sgbm.minDisparity);
-    stereo->setNumDisparities(sgbm.numDisparities * 16);
-    //stereo->setTextureThreshold(sgbm.textureThreshold);
-    stereo->setP2(sgbm.textureThreshold);
-    stereo->setUniquenessRatio(sgbm.uniquenessRatio);
-    stereo->setSpeckleWindowSize(sgbm.speckleWindowSize*2);
-    stereo->setSpeckleRange(sgbm.speckleRange);
-    stereo->setDisp12MaxDiff(sgbm.disp12MaxDiff);
-    // 2 pass eexpensive method
-    // stereo->setMode(cv::StereoSGBM::MODE_HH);
-
-}
-
-cv::Mat calculateDisparities(cv::Mat leftImage, cv::Mat rightImage) {
-    cv::Mat disp; 
-    // Converting images to grayscale
-    cv::cvtColor(leftImage, leftImage, cv::COLOR_BGR2GRAY);
-    cv::cvtColor(rightImage, rightImage, cv::COLOR_BGR2GRAY);
-
-    // Calculating disparith using the StereoBM algorithm
-    stereo->compute(leftImage, rightImage, disp);
-
-    // Converting disparity values to CV_32F from CV_16S
-    disp.convertTo(disp, CV_32F, 1.0);
-
-    // Scaling down the disparity values and normalizing them 
-    disp = (disp / 16.0f - (float)stereo->getMinDisparity()) / ((float)stereo->getNumDisparities());
-
-    output = disp;
-
-    return disp;
-}

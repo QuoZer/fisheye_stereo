@@ -11,8 +11,13 @@ namespace MultiThreading
         public int code;  // out error code 
         Color32[] rawColor1;
         Color32[] rawColor2;
+        IntPtr pixelPointer;
         int width;
         int height;
+        int dispScreenWidth;
+        int dispScreenHeight;
+        int cameraType;
+
         int leftYaw;
         int rightYaw;
         bool showImages;
@@ -41,13 +46,18 @@ namespace MultiThreading
             }
         }
 
-        public DisaprityCalculator(int w, int h, bool show, int cam1XRot, int cam2XRot)
+        public DisaprityCalculator(int camType, int w, int h, bool show, int cam1XRot, int cam2XRot, IntPtr pixelPtr)
         {
+            cameraType = camType;
             width = w;
             height = h;
+            dispScreenWidth = w;
+            dispScreenHeight = h;
             showImages = show;
             leftYaw = cam1XRot;
             rightYaw = cam2XRot;
+            action = 0;
+            pixelPointer = pixelPtr;
             Debug.Log("Parameters Set");
         }
 
@@ -61,7 +71,7 @@ namespace MultiThreading
                 rawColors[1] = p2;
                 fixed (Color32** pointer = rawColors)
                 {
-                    code = getImages((IntPtr)pointer, width, height, 2, showImages, sgbm);
+                    code = getImages((IntPtr)pointer, width, height, 2, cameraType, showImages, sgbm);
                 }
 
             }
@@ -78,7 +88,7 @@ namespace MultiThreading
                 fixed (Color32** pointer = rawColors)
                 {
                     //takeScreenshot((IntPtr)pointer, width, height, numOfCam, show);
-                    takeStereoScreenshot((IntPtr)pointer, width, height, 0, 1, true);
+                    takeStereoScreenshot((IntPtr)pointer, width, height, 0, 1, false);
                 }
             }
         }
@@ -102,7 +112,7 @@ namespace MultiThreading
         public void Update(Color32[] rawImg1, Color32[] rawImg2, SGBMparams stereoparams, int inpAction)          // , IntPtr data
         {
             // Update is called every frame from the main thred Update(). We don't want to mess with the data while the image is processed.
-            if (!processingFrame)
+            if (!processingFrame || true)       // hmmm, data is nt actually messed this way //HACK: ??
             {
                 //MainThreadWait.WaitOne();
                 MainThreadWait.Reset();
@@ -111,8 +121,7 @@ namespace MultiThreading
                 rawColor1 = rawImg1;
                 rawColor2 = rawImg2;
                 sgbm = stereoparams;
-                action = inpAction;
-                //processImage(data, width, height);
+                if (inpAction != 0) action = inpAction;
 
                 ChildThreadWait.Set();
                 //WaitHandle.SignalAndWait(ChildThreadWait, MainThreadWait);
@@ -131,7 +140,6 @@ namespace MultiThreading
             while (threadIsRunning)
             {
                 ChildThreadWait.Reset();
-                Debug.Log("Current action=" + action);
                 processingFrame = true;
                 switch (action)
                 {
@@ -140,12 +148,19 @@ namespace MultiThreading
                         break;
                     case 1:
                         Screenshoter();
+                        action = 0;
                         break;
                     case 2:
                         initialize(width, height, 2, leftYaw, rightYaw);
+                        action = 0;
                         break;
+                    case 3:
+                        processImage(pixelPointer, dispScreenWidth, dispScreenHeight);
+                        action = 0;
+                        break;
+
                 }
-                action = 0;
+                
                 processingFrame = false;
 
                 WaitHandle.SignalAndWait(MainThreadWait, ChildThreadWait);
@@ -159,13 +174,14 @@ namespace MultiThreading
         [DllImport("unity_plugin", EntryPoint = "terminate")]
         unsafe private static extern void terminate();
         [DllImport("unity_plugin", EntryPoint = "getImages")]
-        unsafe private static extern int getImages(IntPtr raw, int width, int height, int numOfImg, bool isShow, SGBMparams sgbm);
+        unsafe private static extern int getImages(IntPtr raw, int width, int height, int numOfImg, int imageType, bool isShow, SGBMparams sgbm);
         [DllImport("unity_plugin", EntryPoint = "takeStereoScreenshot")]
         unsafe private static extern int takeStereoScreenshot(IntPtr raw, int width, int height, int numOfCam1, int numOfCam2, bool isShow);
         [DllImport("unity_plugin", EntryPoint = "processImage")]
         unsafe private static extern void processImage(IntPtr data, int width, int height);
         [DllImport("unity_plugin", EntryPoint = "initialize")]
         unsafe private static extern int initialize(int width, int height, int num, int leftRot, int rightRot);
+
 
     }
 }

@@ -37,22 +37,18 @@ struct SGBMparams
     uchar speckleWindowSize;
 };
 
-string findCoordinates(const cv::Mat& binaryImage, const cv::Mat& imageToDrawOn, bool drawCenters);
-void UndistortFY(cv::Mat& in, cv::Mat& undistorted);
-cv::Point2f getInputPoint(int x, int y, int srcwidth, int srcheight);
 void fillStereoParams(SGBMparams& sgbm);
-cv::Mat calculateDisparities(cv::Mat leftImage, cv::Mat rightImage);
+cv::Mat calculateDisparities(cv::Mat leftImage, cv::Mat rightImage, int cameraType);
 
 
 extern "C"
 {
 	__declspec(dllexport) int initialize(int width, int height, int numOfImg, int leftRot, int rightRot);
     __declspec(dllexport) void terminate();
-    __declspec(dllexport) int getImages(Color32** raw, int width, int height, int numOfImg, bool isShow, SGBMparams sgbm);
+    __declspec(dllexport) int getImages(Color32** raw, int width, int height, int numOfImg, int imageType, bool isShow, SGBMparams sgbm);
     __declspec(dllexport) void processImage(unsigned char* data, int width, int height);
     __declspec(dllexport) int takeScreenshot(Color32** raw, int width, int height, int numOfCam, bool isShow);
     __declspec(dllexport) int takeStereoScreenshot(Color32** raw, int width, int height, int numOfCam1, int numOfCam2, bool isShow);
 
-	cv::Mat colorFilter(const cv::Mat& src, FilterValues filter);
 }
 

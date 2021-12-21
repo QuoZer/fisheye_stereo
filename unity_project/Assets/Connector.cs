@@ -34,6 +34,8 @@ public class Connector : MonoBehaviour
     public int cam1XRot;
     public Camera camera2;
     public int cam2XRot;
+    public Camera camera3;
+    public Camera camera4;
 
     [Header("Screens")]
     public GameObject disparityScreen;
@@ -61,11 +63,14 @@ public class Connector : MonoBehaviour
     [Header("Img parameters")]
     public static int width = 1080;
     public static int height = 1080;
-    public static bool showImages = true;
+    public static bool showImages = false;
     public bool showPano = false;
-
+    // Fisheye
     private Texture2D camTex1;
     private Texture2D camTex2;
+    // Regular
+    private Texture2D camTex3;
+    private Texture2D camTex4;
 
     private SGBMparams sgbm;        // structure to store SGBM parameter values
 
@@ -77,6 +82,7 @@ public class Connector : MonoBehaviour
     bool pano = false;
     // Threading stuff
     DisaprityCalculator imageProcessingThread;
+    DisaprityCalculator regularCameraThread;
     bool threadStarted = false;
     bool initFlag = false;
 
@@ -84,35 +90,38 @@ public class Connector : MonoBehaviour
     void Start()
     {
         Debug.Log("Start Function");
+        InitTexture();
+        disparityScreen.GetComponent<Renderer>().material.mainTexture = dispScreenTexture;
         unsafe {
             //AllocConsole();
             sgbm = new SGBMparams();
-            imageProcessingThread  = new DisaprityCalculator(width, height, showImages, cam1XRot, cam2XRot);
-            //initialize(width, height, 2, cam1XRot, cam2XRot);
+            imageProcessingThread  = new DisaprityCalculator(1, width, height, showImages, cam1XRot, cam2XRot, pixelPtr);
+            regularCameraThread = new DisaprityCalculator(0, width, height, showImages, 0, 0, pixelPtr);
         }
 
     }
     // Update is called once per frame
     void Update()
     {
+        // Fisheye cameras
         camTex1 = CameraToTexture2D(camera1);
         camTex2 = CameraToTexture2D(camera2);
+        // Regular cameras
+        camTex3 = CameraToTexture2D(camera3);
+        camTex4 = CameraToTexture2D(camera4);
 
         fillStereoParams();        // fills 'sgbm' structure with slider values 
         actionId = 0;               // Default to update action
-
+        // TODO: id's are messed up
         /* Update texture in the world */
         if (Input.GetKeyUp("[1]")) {
-            InitTexture();
-            disparityScreen.GetComponent<Renderer>().material.mainTexture = dispScreenTexture;
-            MatToTexture2D();
-            Debug.Log("Updating world texture");
+            actionId = 3;
             // TODO: World texture renderer
         }
-
         /* Take screenshot */
         if (Input.GetKeyUp("[2]")) {
-            actionId = 1;
+
+           actionId = 1;
         }
         /* Reinitialize */
         if (Input.GetKeyUp("[3]")) {
@@ -122,15 +131,19 @@ public class Connector : MonoBehaviour
         if (!threadStarted)         // image processing thread hasn't been started before
         {
             Debug.Log("Starting thread");
+            regularCameraThread.Start();
             imageProcessingThread.Start();      // start the thread
             threadStarted = true;
         }
         /* Pass the data to the thread */
         imageProcessingThread.Update(camTex1.GetPixels32(), camTex2.GetPixels32(), sgbm, actionId);
-
+        regularCameraThread.Update(camTex3.GetPixels32(), camTex4.GetPixels32(), sgbm, 0);
+        
         /* textures are not erased by the GC automatically */
         Destroy(camTex1);
         Destroy(camTex2);
+        Destroy(camTex3);
+        Destroy(camTex4);
     }
 
 
@@ -138,6 +151,7 @@ public class Connector : MonoBehaviour
     {
         pixelHandle.Free();
         imageProcessingThread.Abort();
+        regularCameraThread.Abort();
     }
 
     void OnGUI()
@@ -178,7 +192,7 @@ public class Connector : MonoBehaviour
             rawColors[1] = p2;
             fixed (Color32** pointer = rawColors)
             {
-                getImages((IntPtr)pointer, width, height, 2, showImages, sgbm);   // OCV gets images
+                getImages((IntPtr)pointer, width, height, 1, 2, showImages, sgbm);   // OCV gets images
             }
         }
 
@@ -258,7 +272,7 @@ public class Connector : MonoBehaviour
     unsafe private static extern void processImage(IntPtr data, int width, int height);
 
     [DllImport("unity_plugin", EntryPoint = "getImages")]
-    unsafe private static extern int getImages(IntPtr raw, int width, int height, int numOfImg, bool isShow, SGBMparams sgbm);
+    unsafe private static extern int getImages(IntPtr raw, int width, int height, int numOfImg, int imageType, bool isShow, SGBMparams sgbm);
 
     [DllImport("unity_plugin", EntryPoint = "takeScreenshot")]
     unsafe private static extern int takeScreenshot(IntPtr raw, int width, int height, int numOfCam, bool isShow);
