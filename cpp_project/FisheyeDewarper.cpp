@@ -68,6 +68,10 @@ void FisheyeDewarper::setRpy(float yaw, float pitch, float roll)
     // TODO: fillMaps() after angle update. Or should it be handled manually? 
 }
 
+std::vector<cv::Point> FisheyeDewarper::getBorder() {
+    return this->frameBorder;
+}
+
 cv::Point2f FisheyeDewarper::projectWorldToFisheyeAtan(cv::Mat worldPoint)
 {
     float wx = worldPoint.at<float>(0);
@@ -355,3 +359,4 @@ cv::Mat FisheyeDewarper::dewrapImage(cv::Mat inputImage)
     cv::remap(inputImage, remapped, map1, map2, cv::INTER_CUBIC, cv::BORDER_CONSTANT);
     return remapped;
 }
+

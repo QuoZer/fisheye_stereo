@@ -66,6 +66,8 @@ public:		/* Settings */
 	void setIntrinsics(double a1, double a2, double a3, double a4, cv::Vec2d centerOffset, cv::Matx22d stretchMatrix, double scaleFactor);
 	void setRpy(float yaw, float pitch, float roll);
 
+	std::vector<cv::Point> getBorder();
+
 public:		/*  */
 	void fillMaps(int mode);
 	cv::Mat dewrapImage(cv::Mat inputImage);

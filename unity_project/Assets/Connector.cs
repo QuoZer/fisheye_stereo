@@ -85,6 +85,7 @@ public class Connector : MonoBehaviour
     DisaprityCalculator regularCameraThread;
     bool threadStarted = false;
     bool initFlag = false;
+    bool turn = true;
 
     // Start is called before the first frame update
     void Start()
@@ -95,8 +96,8 @@ public class Connector : MonoBehaviour
         unsafe {
             //AllocConsole();
             sgbm = new SGBMparams();
-            imageProcessingThread  = new DisaprityCalculator(1, width, height, showImages, cam1XRot, cam2XRot, pixelPtr);
-            regularCameraThread = new DisaprityCalculator(0, width, height, showImages, 0, 0, pixelPtr);
+            imageProcessingThread  = new DisaprityCalculator(1, 1080, 1080, showImages, cam1XRot, cam2XRot, pixelPtr);
+            regularCameraThread = new DisaprityCalculator(0, 540, 540, showImages, 0, 0, pixelPtr);
         }
 
     }
@@ -136,8 +137,9 @@ public class Connector : MonoBehaviour
             threadStarted = true;
         }
         /* Pass the data to the thread */
+        // idk seems like both threads use the same library memory        
         imageProcessingThread.Update(camTex1.GetPixels32(), camTex2.GetPixels32(), sgbm, actionId);
-        regularCameraThread.Update(camTex3.GetPixels32(), camTex4.GetPixels32(), sgbm, 0);
+        regularCameraThread.Update(camTex3.GetPixels32(), camTex4.GetPixels32(), sgbm, actionId);
         
         /* textures are not erased by the GC automatically */
         Destroy(camTex1);
@@ -161,9 +163,19 @@ public class Connector : MonoBehaviour
 
     private Texture2D CameraToTexture2D(Camera camera)
     {
-        Rect rect = new Rect(0, 0, width, height);
-        RenderTexture renderTexture = new RenderTexture(width, height, 24);
-        Texture2D screenShot = new Texture2D(width, height, TextureFormat.ARGB32, false);
+        Rect rect;
+        RenderTexture renderTexture = new RenderTexture(1080, 1080, 24);      // TODO: adapt texture for regular and fisheye 
+        Texture2D screenShot = new Texture2D(540, 540, TextureFormat.ARGB32, false);
+        if (camera == camera3)
+        { rect = new Rect(0, height / 2, width / 2, height / 2); }
+        else if (camera == camera4)
+        { rect = new Rect(width / 2, height / 2, width / 2, height / 2); }
+        else        // full frame fusheye
+        {
+            rect = new Rect(0, 0, width, height);
+            renderTexture = new RenderTexture(width, height, 24);
+            screenShot = new Texture2D(width, height, TextureFormat.ARGB32, false);
+        }
 
         camera.targetTexture = renderTexture;
         camera.Render();
@@ -192,7 +204,7 @@ public class Connector : MonoBehaviour
             rawColors[1] = p2;
             fixed (Color32** pointer = rawColors)
             {
-                getImages((IntPtr)pointer, width, height, 1, 2, showImages, sgbm);   // OCV gets images
+                getImages((IntPtr)pointer, width, height, 2, showImages, sgbm);   // OCV gets images
             }
         }
 
@@ -263,7 +275,7 @@ public class Connector : MonoBehaviour
     #region dllimport
 
     [DllImport("unity_plugin", EntryPoint = "initialize")]
-    unsafe private static extern int initialize(int width, int height, int num, int leftRot, int rightRot);
+    unsafe private static extern int initialize(int width, int height, int num, int imageType, int leftRot, int rightRot);
 
     [DllImport("unity_plugin", EntryPoint = "terminate")]
     unsafe private static extern void terminate();
@@ -272,7 +284,7 @@ public class Connector : MonoBehaviour
     unsafe private static extern void processImage(IntPtr data, int width, int height);
 
     [DllImport("unity_plugin", EntryPoint = "getImages")]
-    unsafe private static extern int getImages(IntPtr raw, int width, int height, int numOfImg, int imageType, bool isShow, SGBMparams sgbm);
+    unsafe private static extern int getImages(IntPtr raw, int width, int height, int numOfImg, bool isShow, SGBMparams sgbm);
 
     [DllImport("unity_plugin", EntryPoint = "takeScreenshot")]
     unsafe private static extern int takeScreenshot(IntPtr raw, int width, int height, int numOfCam, bool isShow);

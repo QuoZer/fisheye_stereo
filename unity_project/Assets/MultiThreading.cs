@@ -71,7 +71,7 @@ namespace MultiThreading
                 rawColors[1] = p2;
                 fixed (Color32** pointer = rawColors)
                 {
-                    code = getImages((IntPtr)pointer, width, height, 2, cameraType, showImages, sgbm);
+                    code = getImages((IntPtr)pointer, width, height, 2, showImages, sgbm);
                 }
 
             }
@@ -112,7 +112,7 @@ namespace MultiThreading
         public void Update(Color32[] rawImg1, Color32[] rawImg2, SGBMparams stereoparams, int inpAction)          // , IntPtr data
         {
             // Update is called every frame from the main thred Update(). We don't want to mess with the data while the image is processed.
-            if (!processingFrame || true)       // hmmm, data is nt actually messed this way //HACK: ??
+            if (!processingFrame || true)       // hmmm, data is not actually messed this way //HACK: ??
             {
                 //MainThreadWait.WaitOne();
                 MainThreadWait.Reset();
@@ -134,7 +134,7 @@ namespace MultiThreading
             ChildThreadWait.WaitOne();
 
             Debug.Log("Building LUTs with: w=" + width + ", h=" + height + ", lYaw=" + leftYaw + ", rYaw=" + rightYaw);
-            code = initialize(width, height, 2, leftYaw, rightYaw);
+            code = initialize(width, height, 2, cameraType, leftYaw, rightYaw);
             if (code == 0) Debug.Log("LUTs ready, proceeding...");
 
             while (threadIsRunning)
@@ -151,7 +151,7 @@ namespace MultiThreading
                         action = 0;
                         break;
                     case 2:
-                        initialize(width, height, 2, leftYaw, rightYaw);
+                        initialize(width, height, 2, cameraType, leftYaw, rightYaw);
                         action = 0;
                         break;
                     case 3:
@@ -174,13 +174,13 @@ namespace MultiThreading
         [DllImport("unity_plugin", EntryPoint = "terminate")]
         unsafe private static extern void terminate();
         [DllImport("unity_plugin", EntryPoint = "getImages")]
-        unsafe private static extern int getImages(IntPtr raw, int width, int height, int numOfImg, int imageType, bool isShow, SGBMparams sgbm);
+        unsafe private static extern int getImages(IntPtr raw, int width, int height, int numOfImg, bool isShow, SGBMparams sgbm);
         [DllImport("unity_plugin", EntryPoint = "takeStereoScreenshot")]
         unsafe private static extern int takeStereoScreenshot(IntPtr raw, int width, int height, int numOfCam1, int numOfCam2, bool isShow);
         [DllImport("unity_plugin", EntryPoint = "processImage")]
         unsafe private static extern void processImage(IntPtr data, int width, int height);
         [DllImport("unity_plugin", EntryPoint = "initialize")]
-        unsafe private static extern int initialize(int width, int height, int num, int leftRot, int rightRot);
+        unsafe private static extern int initialize(int width, int height, int num, int camType, int leftRot, int rightRot);
 
 
     }
