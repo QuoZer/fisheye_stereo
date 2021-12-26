@@ -133,14 +133,17 @@ public class Connector : MonoBehaviour
         {
             Debug.Log("Starting thread");
             regularCameraThread.Start();
-            imageProcessingThread.Start();      // start the thread
+            imageProcessingThread.Start();      // start the threads
             threadStarted = true;
         }
         /* Pass the data to the thread */
-        // idk seems like both threads use the same library memory        
-        imageProcessingThread.Update(camTex1.GetPixels32(), camTex2.GetPixels32(), sgbm, actionId);
-        regularCameraThread.Update(camTex3.GetPixels32(), camTex4.GetPixels32(), sgbm, actionId);
-        
+        // idk seems like both threads use the same library memory
+        if (imageProcessingThread.code == 0 && regularCameraThread.code == 0 || true)
+        {
+            imageProcessingThread.Update(camTex1.GetPixels32(), camTex2.GetPixels32(), sgbm, actionId);
+            regularCameraThread.Update(camTex3.GetPixels32(), camTex4.GetPixels32(), sgbm, actionId);
+        }
+
         /* textures are not erased by the GC automatically */
         Destroy(camTex1);
         Destroy(camTex2);
@@ -191,53 +194,53 @@ public class Connector : MonoBehaviour
         return screenShot;
     }
 
-    unsafe void TextureToCVMat(Texture2D raw1, Texture2D raw2)
-    {
-        Color32[] rawColor1 = raw1.GetPixels32();
-        Color32[] rawColor2 = raw2.GetPixels32();
+    //unsafe void TextureToCVMat(Texture2D raw1, Texture2D raw2)
+    //{
+    //    Color32[] rawColor1 = raw1.GetPixels32();
+    //    Color32[] rawColor2 = raw2.GetPixels32();
 
-        Color32*[] rawColors = new Color32*[2];
+    //    Color32*[] rawColors = new Color32*[2];
 
-        fixed (Color32* p1 = rawColor1, p2 = rawColor2)
-        {
-            rawColors[0] = p1;
-            rawColors[1] = p2;
-            fixed (Color32** pointer = rawColors)
-            {
-                getImages((IntPtr)pointer, width, height, 2, showImages, sgbm);   // OCV gets images
-            }
-        }
+    //    fixed (Color32* p1 = rawColor1, p2 = rawColor2)
+    //    {
+    //        rawColors[0] = p1;
+    //        rawColors[1] = p2;
+    //        fixed (Color32** pointer = rawColors)
+    //        {
+    //            getImages((IntPtr)pointer, width, height, 2, showImages, sgbm);   // OCV gets images
+    //        }
+    //    }
 
-        Destroy(raw1);
-        Destroy(raw2);
+    //    Destroy(raw1);
+    //    Destroy(raw2);
 
-        raw1 = null;
-        raw2 = null;
-    }
+    //    raw1 = null;
+    //    raw2 = null;
+    //}
 
-    unsafe void Screenshoter(Texture2D raw1, Texture2D raw2, int numOfCam, bool show)
-    {
-        Color32[] rawColor1 = raw1.GetPixels32();
-        Color32[] rawColor2 = raw2.GetPixels32();
+    //unsafe void Screenshoter(Texture2D raw1, Texture2D raw2, int numOfCam, bool show)
+    //{
+    //    Color32[] rawColor1 = raw1.GetPixels32();
+    //    Color32[] rawColor2 = raw2.GetPixels32();
 
-        Color32*[] rawColors = new Color32*[2];
-    fixed (Color32* p1 = rawColor1, p2 = rawColor2)
-        {
-            rawColors[0] = p1;
-            rawColors[1] = p2;
-            fixed (Color32** pointer = rawColors)
-            {
-                //takeScreenshot((IntPtr)pointer, width, height, numOfCam, show);
-                takeStereoScreenshot((IntPtr)pointer, width, height, 0, 1, show);
-            }
-        }
+    //    Color32*[] rawColors = new Color32*[2];
+    //fixed (Color32* p1 = rawColor1, p2 = rawColor2)
+    //    {
+    //        rawColors[0] = p1;
+    //        rawColors[1] = p2;
+    //        fixed (Color32** pointer = rawColors)
+    //        {
+    //            //takeScreenshot((IntPtr)pointer, width, height, numOfCam, show);
+    //            takeStereoScreenshot((IntPtr)pointer, width, height, 0, 1, show);
+    //        }
+    //    }
 
-        Destroy(raw1);
-        Destroy(raw2);
+    //    Destroy(raw1);
+    //    Destroy(raw2);
 
-        raw1 = null;
-        raw2 = null;
-    }
+    //    raw1 = null;
+    //    raw2 = null;
+    //}
 
 
     void InitTexture()
@@ -284,7 +287,7 @@ public class Connector : MonoBehaviour
     unsafe private static extern void processImage(IntPtr data, int width, int height);
 
     [DllImport("unity_plugin", EntryPoint = "getImages")]
-    unsafe private static extern int getImages(IntPtr raw, int width, int height, int numOfImg, bool isShow, SGBMparams sgbm);
+    unsafe private static extern int getImages(IntPtr raw, int width, int height, int numOfImg, int cameraType, bool isShow, SGBMparams sgbm);
 
     [DllImport("unity_plugin", EntryPoint = "takeScreenshot")]
     unsafe private static extern int takeScreenshot(IntPtr raw, int width, int height, int numOfCam, bool isShow);

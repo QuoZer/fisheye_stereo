@@ -100,7 +100,8 @@ extern "C"
             rawData.push_back(0);
         }
 
-        if (camType == CAMERA_FISHEYE) {        
+        if (cameraType == CAMERA_FISHEYE) 
+        {
             //  180 deg: 350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9)
             //  270 deg: 229.3778, -0.0016, 9.737 * pow(10, -7), -4.2154 * pow(10, -9)
             left_dewarper.setIntrinsics(350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9), cv::Vec2d(0, 0), cv::Matx22d(1, 0, 0, 1), 0.022);        // 270 deg coefs
@@ -114,13 +115,11 @@ extern "C"
             right_dewarper.fillMaps(SCARAMUZZA);
 
             cv::namedWindow("Fisheye disparity", cv::WindowFlags::WINDOW_AUTOSIZE);
-        }
-        else {
             cv::namedWindow("Regular disparity", cv::WindowFlags::WINDOW_AUTOSIZE);
+
         }
-
+        
         stereo = cv::StereoSGBM::create();            
-
         return 0;
     }
 
@@ -143,7 +142,7 @@ extern "C"
         return 0;
     }
 
-    int takeStereoScreenshot(Color32** raw, int width, int height, int numOfCam1, int numOfCam2, bool isShow)
+    int takeStereoScreenshot(Color32** raw, int width, int height, int cameraType, int numOfCam1, int numOfCam2, bool isShow)
     {
         cv::Mat stereo = cv::Mat(height, 2 * width, CV_8UC4, cv::Scalar(0, 0, 0));
         cv::Mat cam1 = cv::Mat(height, width, CV_8UC4, raw[numOfCam1]);
@@ -163,7 +162,7 @@ extern "C"
         //      hardcoded image path((((
         string left_path;
         string right_path;
-        if (camType == CAMERA_REGULAR) {
+        if (cameraType == CAMERA_REGULAR) {
             left_path = "D:/Work/Coding/Repos/RTC_Practice/fisheye_stereo/data/stereo_img/l" + to_string(screenIndex) + "_reg_shot.jpg";
             right_path = "D:/Work/Coding/Repos/RTC_Practice/fisheye_stereo/data/stereo_img/r" + to_string(screenIndex) + "_reg_shot.jpg";
         }
@@ -185,7 +184,7 @@ extern "C"
         return 0;
     }
 
-    int getImages(Color32** raw, int width, int height, int numOfImg, bool isShow, SGBMparams sgbm)
+    int getImages(Color32** raw, int width, int height, int cameraType, int numOfImg, bool isShow, SGBMparams sgbm)
     {
         if (numOfImg < 1)
         {
@@ -202,19 +201,19 @@ extern "C"
                 flip(frames[i], frames[i], 0);
 
             }
-            if (camType == CAMERA_FISHEYE) {
+
+            if (cameraType == CAMERA_FISHEYE) {
                 frames[0] = left_dewarper.dewrapImage(frames[0]);    // undistort 
                 frames[1] = right_dewarper.dewrapImage(frames[1]);
             }
             fillStereoParams(sgbm);
-            cv::Mat disparity = calculateDisparities(frames[0], frames[1]);
+            cv::Mat disparity = calculateDisparities(frames[0], frames[1], cameraType);
 
             if (isShow)
             {
                 for (int i = 0; i < numOfImg; i++)
                 {
                     imshow(framesNames[i], frames[i]);
-                    imshow("Disparity", disparity);
                     isShowed = true;
                 }
             }
@@ -278,7 +277,7 @@ extern "C"
 
     }
 
-    cv::Mat calculateDisparities(cv::Mat leftImage, cv::Mat rightImage) {
+    cv::Mat calculateDisparities(cv::Mat leftImage, cv::Mat rightImage, int cameraType) {
         cv::Mat disp;
         // Converting images to grayscale
         cv::cvtColor(leftImage, leftImage, cv::COLOR_BGR2GRAY);
@@ -293,11 +292,11 @@ extern "C"
         // Scaling down the disparity values and normalizing them 
         disp = (disp / 16.0f - (float)stereo->getMinDisparity()) / ((float)stereo->getNumDisparities());
 
-        if (camType == CAMERA_FISHEYE) {
+        if (cameraType == CAMERA_FISHEYE) {
             fisheyeDisparity = disp;
             imshow("Fisheye disparity", fisheyeDisparity);
         }
-        if (camType == CAMERA_REGULAR) {
+        if (cameraType == CAMERA_REGULAR) {
             regularDisparity = disp;
             imshow("Regular disparity", regularDisparity);
         }
