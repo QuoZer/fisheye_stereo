@@ -111,7 +111,7 @@ public class Connector : MonoBehaviour
         }
 
         /* Take screenshot */
-        if (Input.GetKeyUp("[2]")) {
+        if (Input.GetKeyUp(KeyCode.Space)) {
             actionId = 1;
         }
         /* Reinitialize */

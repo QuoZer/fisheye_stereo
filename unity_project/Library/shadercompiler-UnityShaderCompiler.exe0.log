@@ -1,2 +1,4 @@
-Base path: 'H:/RTC/Practice/Unity/Editor/Data', plugins path 'H:/RTC/Practice/Unity/Editor/Data/PlaybackEngines'
+Base path: 'C:/Users/Matvey/Work/Unity/Editor/Unity/Editor/Data', plugins path 'C:/Users/Matvey/Work/Unity/Editor/Unity/Editor/Data/PlaybackEngines'
 Cmd: initializeCompiler
+Cmd: preprocess
+  insize=2502 outsize=449 ok=1
