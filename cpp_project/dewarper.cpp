@@ -203,7 +203,7 @@ int main(int argc, char** argv)
     FisheyeDewarper dewarper;
     dewarper.setIntrinsics( 350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9), cv::Vec2d(0, 0), cv::Matx22d(1, 0, 0, 1), 0.022 );
     dewarper.setSize(origSize, newSize, 90);
-    dewarper.setRpy(0, 0, 0);
+    dewarper.setRpy(45, 0, 0);
 
 
     while(true)         //  iterate through images       
@@ -224,7 +224,8 @@ int main(int argc, char** argv)
         Mat rightImageRemapped(newSize, CV_8UC3, Scalar(0, 0, 0));
         leftImageRemapped = dewarper.dewrapImage(left);
         rightImageRemapped = dewarper.dewrapImage(right);
-        
+        gridDist = dewarper.getBorder();
+
         bool textPut = true;
         // draw grid
         for each (Point center in gridDist)
@@ -235,6 +236,9 @@ int main(int argc, char** argv)
             }
             circle(left, center, 4, Scalar(115, 25, 10), 3);
         }
+        std::vector<cv::Point> hull;
+        convexHull(gridDist, hull);
+        cout << "Contour area is" << contourArea(hull) << std::endl;
 
         // Converting images to grayscale
         //cv::cvtColor(leftImageRemapped, leftImageRemapped, cv::COLOR_BGR2GRAY);
@@ -244,7 +248,7 @@ int main(int argc, char** argv)
         //cv::imshow("disparity", leftImageRemapped);
         
 
-        char key = (char)waitKey(1);
+        char key = (char)waitKey(0);
         switch (key){
         case 'r':
             index += 0;

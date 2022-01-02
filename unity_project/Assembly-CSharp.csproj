@@ -66,6 +66,7 @@
   <ItemGroup>
     <Compile Include="Assets\Connector.cs" />
     <Compile Include="Assets\MultiThreading.cs" />
+    <Compile Include="Assets\OldMultiThreading.cs" />
     <Compile Include="Assets\quadrocopterScript.cs" />
     <Compile Include="Assets\RenderCubemap.cs" />
     <Compile Include="Assets\RenderFisheye.cs" />

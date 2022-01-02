@@ -34,6 +34,8 @@ public class Connector : MonoBehaviour
     public int cam1XRot;
     public Camera camera2;
     public int cam2XRot;
+    public Camera camera3;
+    public Camera camera4;
 
     [Header("Screens")]
     public GameObject disparityScreen;
@@ -61,11 +63,14 @@ public class Connector : MonoBehaviour
     [Header("Img parameters")]
     public static int width = 1080;
     public static int height = 1080;
-    public static bool showImages = true;
+    public static bool showImages = false;
     public bool showPano = false;
-
+    // Fisheye
     private Texture2D camTex1;
     private Texture2D camTex2;
+    // Regular
+    private Texture2D camTex3;
+    private Texture2D camTex4;
 
     private SGBMparams sgbm;        // structure to store SGBM parameter values
 
@@ -77,42 +82,47 @@ public class Connector : MonoBehaviour
     bool pano = false;
     // Threading stuff
     DisaprityCalculator imageProcessingThread;
+    DisaprityCalculator regularCameraThread;
     bool threadStarted = false;
     bool initFlag = false;
+    bool turn = true;
 
     // Start is called before the first frame update
     void Start()
     {
         Debug.Log("Start Function");
+        InitTexture();
+        disparityScreen.GetComponent<Renderer>().material.mainTexture = dispScreenTexture;
         unsafe {
             //AllocConsole();
             sgbm = new SGBMparams();
-            imageProcessingThread  = new DisaprityCalculator(width, height, showImages, cam1XRot, cam2XRot);
-            //initialize(width, height, 2, cam1XRot, cam2XRot);
+            imageProcessingThread  = new DisaprityCalculator(1, 1080, 1080, showImages, cam1XRot, cam2XRot, pixelPtr);
+            regularCameraThread = new DisaprityCalculator(0, 540, 540, showImages, 0, 0, pixelPtr);
         }
 
     }
     // Update is called once per frame
     void Update()
     {
+        // Fisheye cameras
         camTex1 = CameraToTexture2D(camera1);
         camTex2 = CameraToTexture2D(camera2);
+        // Regular cameras
+        camTex3 = CameraToTexture2D(camera3);
+        camTex4 = CameraToTexture2D(camera4);
 
         fillStereoParams();        // fills 'sgbm' structure with slider values 
         actionId = 0;               // Default to update action
-
+        // TODO: id's are messed up
         /* Update texture in the world */
         if (Input.GetKeyUp("[1]")) {
-            InitTexture();
-            disparityScreen.GetComponent<Renderer>().material.mainTexture = dispScreenTexture;
-            MatToTexture2D();
-            Debug.Log("Updating world texture");
+            actionId = 3;
             // TODO: World texture renderer
         }
-
         /* Take screenshot */
-        if (Input.GetKeyUp(KeyCode.Space)) {
-            actionId = 1;
+        if (Input.GetKeyUp("[2]")) {
+
+           actionId = 1;
         }
         /* Reinitialize */
         if (Input.GetKeyUp("[3]")) {
@@ -122,15 +132,23 @@ public class Connector : MonoBehaviour
         if (!threadStarted)         // image processing thread hasn't been started before
         {
             Debug.Log("Starting thread");
-            imageProcessingThread.Start();      // start the thread
+            regularCameraThread.Start();
+            imageProcessingThread.Start();      // start the threads
             threadStarted = true;
         }
         /* Pass the data to the thread */
-        imageProcessingThread.Update(camTex1.GetPixels32(), camTex2.GetPixels32(), sgbm, actionId);
+        // idk seems like both threads use the same library memory
+        if (imageProcessingThread.code == 0 && regularCameraThread.code == 0 || true)
+        {
+            imageProcessingThread.Update(camTex1.GetPixels32(), camTex2.GetPixels32(), sgbm, actionId);
+            regularCameraThread.Update(camTex3.GetPixels32(), camTex4.GetPixels32(), sgbm, actionId);
+        }
 
         /* textures are not erased by the GC automatically */
         Destroy(camTex1);
         Destroy(camTex2);
+        Destroy(camTex3);
+        Destroy(camTex4);
     }
 
 
@@ -138,6 +156,7 @@ public class Connector : MonoBehaviour
     {
         pixelHandle.Free();
         imageProcessingThread.Abort();
+        regularCameraThread.Abort();
     }
 
     void OnGUI()
@@ -147,9 +166,19 @@ public class Connector : MonoBehaviour
 
     private Texture2D CameraToTexture2D(Camera camera)
     {
-        Rect rect = new Rect(0, 0, width, height);
-        RenderTexture renderTexture = new RenderTexture(width, height, 24);
-        Texture2D screenShot = new Texture2D(width, height, TextureFormat.ARGB32, false);
+        Rect rect;
+        RenderTexture renderTexture = new RenderTexture(1080, 1080, 24);      // TODO: adapt texture for regular and fisheye 
+        Texture2D screenShot = new Texture2D(540, 540, TextureFormat.ARGB32, false);
+        if (camera == camera3)
+        { rect = new Rect(0, height / 2, width / 2, height / 2); }
+        else if (camera == camera4)
+        { rect = new Rect(width / 2, height / 2, width / 2, height / 2); }
+        else        // full frame fusheye
+        {
+            rect = new Rect(0, 0, width, height);
+            renderTexture = new RenderTexture(width, height, 24);
+            screenShot = new Texture2D(width, height, TextureFormat.ARGB32, false);
+        }
 
         camera.targetTexture = renderTexture;
         camera.Render();
@@ -165,53 +194,53 @@ public class Connector : MonoBehaviour
         return screenShot;
     }
 
-    unsafe void TextureToCVMat(Texture2D raw1, Texture2D raw2)
-    {
-        Color32[] rawColor1 = raw1.GetPixels32();
-        Color32[] rawColor2 = raw2.GetPixels32();
+    //unsafe void TextureToCVMat(Texture2D raw1, Texture2D raw2)
+    //{
+    //    Color32[] rawColor1 = raw1.GetPixels32();
+    //    Color32[] rawColor2 = raw2.GetPixels32();
 
-        Color32*[] rawColors = new Color32*[2];
+    //    Color32*[] rawColors = new Color32*[2];
 
-        fixed (Color32* p1 = rawColor1, p2 = rawColor2)
-        {
-            rawColors[0] = p1;
-            rawColors[1] = p2;
-            fixed (Color32** pointer = rawColors)
-            {
-                getImages((IntPtr)pointer, width, height, 2, showImages, sgbm);   // OCV gets images
-            }
-        }
+    //    fixed (Color32* p1 = rawColor1, p2 = rawColor2)
+    //    {
+    //        rawColors[0] = p1;
+    //        rawColors[1] = p2;
+    //        fixed (Color32** pointer = rawColors)
+    //        {
+    //            getImages((IntPtr)pointer, width, height, 2, showImages, sgbm);   // OCV gets images
+    //        }
+    //    }
 
-        Destroy(raw1);
-        Destroy(raw2);
+    //    Destroy(raw1);
+    //    Destroy(raw2);
 
-        raw1 = null;
-        raw2 = null;
-    }
+    //    raw1 = null;
+    //    raw2 = null;
+    //}
 
-    unsafe void Screenshoter(Texture2D raw1, Texture2D raw2, int numOfCam, bool show)
-    {
-        Color32[] rawColor1 = raw1.GetPixels32();
-        Color32[] rawColor2 = raw2.GetPixels32();
+    //unsafe void Screenshoter(Texture2D raw1, Texture2D raw2, int numOfCam, bool show)
+    //{
+    //    Color32[] rawColor1 = raw1.GetPixels32();
+    //    Color32[] rawColor2 = raw2.GetPixels32();
 
-        Color32*[] rawColors = new Color32*[2];
-    fixed (Color32* p1 = rawColor1, p2 = rawColor2)
-        {
-            rawColors[0] = p1;
-            rawColors[1] = p2;
-            fixed (Color32** pointer = rawColors)
-            {
-                //takeScreenshot((IntPtr)pointer, width, height, numOfCam, show);
-                takeStereoScreenshot((IntPtr)pointer, width, height, 0, 1, show);
-            }
-        }
+    //    Color32*[] rawColors = new Color32*[2];
+    //fixed (Color32* p1 = rawColor1, p2 = rawColor2)
+    //    {
+    //        rawColors[0] = p1;
+    //        rawColors[1] = p2;
+    //        fixed (Color32** pointer = rawColors)
+    //        {
+    //            //takeScreenshot((IntPtr)pointer, width, height, numOfCam, show);
+    //            takeStereoScreenshot((IntPtr)pointer, width, height, 0, 1, show);
+    //        }
+    //    }
 
-        Destroy(raw1);
-        Destroy(raw2);
+    //    Destroy(raw1);
+    //    Destroy(raw2);
 
-        raw1 = null;
-        raw2 = null;
-    }
+    //    raw1 = null;
+    //    raw2 = null;
+    //}
 
 
     void InitTexture()
@@ -249,7 +278,7 @@ public class Connector : MonoBehaviour
     #region dllimport
 
     [DllImport("unity_plugin", EntryPoint = "initialize")]
-    unsafe private static extern int initialize(int width, int height, int num, int leftRot, int rightRot);
+    unsafe private static extern int initialize(int width, int height, int num, int imageType, int leftRot, int rightRot);
 
     [DllImport("unity_plugin", EntryPoint = "terminate")]
     unsafe private static extern void terminate();
@@ -258,7 +287,7 @@ public class Connector : MonoBehaviour
     unsafe private static extern void processImage(IntPtr data, int width, int height);
 
     [DllImport("unity_plugin", EntryPoint = "getImages")]
-    unsafe private static extern int getImages(IntPtr raw, int width, int height, int numOfImg, bool isShow, SGBMparams sgbm);
+    unsafe private static extern int getImages(IntPtr raw, int width, int height, int numOfImg, int cameraType, bool isShow, SGBMparams sgbm);
 
     [DllImport("unity_plugin", EntryPoint = "takeScreenshot")]
     unsafe private static extern int takeScreenshot(IntPtr raw, int width, int height, int numOfCam, bool isShow);
