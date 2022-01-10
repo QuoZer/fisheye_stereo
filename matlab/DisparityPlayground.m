@@ -1,6 +1,10 @@
+
 base_path = "D:\Work\Coding\Repos\RTC_Practice\fisheye_stereo\data\stereo_img\compar\plane7.3m0deg\";
 target_roi = [-0.4 0.6 -0.6 0.5 0.78 0.82];
+targetNormalVector = [0, 0, 1];
+targetDistance = 7.3;
 %  plane7.3m30deg
+
 %%%     FISHEYE        %%%
 
 imgRight = base_path + "fy_r_shot.jpg";
@@ -82,7 +86,15 @@ maxAngularDistance = 0;
 [model1,inlierIndices,outlierIndices, meanError] = pcfitplane(ptCloud,maxDistance,referenceVector,maxAngularDistance);
 plane1 = select(ptCloud,inlierIndices);
 remainPtCloud = select(ptCloud,outlierIndices);
-meanError   % mean square error in distance
+meanError   % print mean square error in distance
+
+
+errorSum = 0;
+for elm = 1:ptCloud.Count
+    pnt = ptCloud.Location(elm,:);
+    errorSum = errorSum + findSquareError(pnt, model1);
+end
+meanSquareError = errorSum/ptCloud.Count
 
 % Visualize the point cloud
 figure('Name','Regular depth')
@@ -90,3 +102,11 @@ pcshow(ptCloud);
 hold on
 plot(model1, 'color', 'white')
 hold off
+
+
+
+function [error] = findSquareError(point, plane)
+    planePoint = [0, 0, plane.Parameters(3)];  % plane center
+    PQ = point - planePoint;
+    error = (dot(PQ, plane.Normal) )^2;
+end
