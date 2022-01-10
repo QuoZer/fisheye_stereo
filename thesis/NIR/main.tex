@@ -13,15 +13,17 @@
 \clearpage
 
 \anonsection{Введение}
-\include{include/intro.tex}
-\include{include/overview.tex}
-\include{include/virtualmodel.tex}
-\include{include/intro_conclusion.tex}
+\input{include/intro.tex}
+\section{Обзор опыта построения систем стереозрения с использованием сверхширокоугольных камер}
+\input{include/overview.tex}
+\input{include/virtualmodel.tex}
+\input{include/intro_conclusion.tex}
+\newpage
 
 \section{Система стереозрения}
-\include{include/stereosystem.tex}  % Описание системы: Какие этапы, элементы и тд
-\include{include/unity_model.tex}  % Моделирование системы 
-\include{include/camera_dewarping.tex}  % Про виртуальную камеру 
+\input{include/stereosystem.tex}  % Описание системы: Какие этапы, элементы и тд
+\input{include/unity_model.tex}  % Моделирование системы 
+\input{include/camera_dewarping.tex}  % Про виртуальную камеру 
 % \include{}  % Про обратную проекцию 
 % \include{}  % Выводы по главе
 
@@ -37,6 +39,9 @@
 
 \bibliographystyle{plain}
 \bibliography{refs}
+
+% Приложения
+%\include{} % Код скрипта
 
 \end{document} 
 %%% Конец документа
