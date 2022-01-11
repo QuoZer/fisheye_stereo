@@ -124,7 +124,7 @@ cv::Mat FisheyeDewarper::projectPinholeToWorld(cv::Point pixel)
 {
     toCenter(pixel, oldSize);
 
-    float cz = 2.0;                                    // doesnt really affect much
+    float cz = 200.0;                                    // doesnt really affect much
     double xFovRad = xFov * PI / 180;                 // assuming equal FOV on x & y
     double yFovRad = yFov * PI / 180;
     double xPinholeFocus = oldSize.width / (2 * tan(xFovRad / 2));
@@ -151,6 +151,8 @@ cv::Mat FisheyeDewarper::projectFisheyeToWorld(cv::Point pixel)
     return rotatePoint(cameraCoords);
 }
 
+
+// NOT RECOMMENDED TO USE
 cv::Point FisheyeDewarper::reverseScaramuzza(cv::Point pixel)      // Fisheye -> Pinhole
 {
     // converting corner coordinates to the center ones
