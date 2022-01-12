@@ -122,13 +122,13 @@ cv::Point2f FisheyeDewarper::projectWorldToPinhole(cv::Mat cameraCoords)
 
 cv::Mat FisheyeDewarper::projectPinholeToWorld(cv::Point pixel)
 {
-    toCenter(pixel, oldSize);
+    toCenter(pixel, newSize);
 
     float cz = 200.0;                                    // doesnt really affect much
-    double xFovRad = xFov * PI / 180;                 // assuming equal FOV on x & y
+    double xFovRad = xFov * PI / 180;                 
     double yFovRad = yFov * PI / 180;
-    double xPinholeFocus = oldSize.width / (2 * tan(xFovRad / 2));
-    double yPinholeFocus = oldSize.height / (2 * tan(yFovRad / 2));
+    double xPinholeFocus = newSize.width / (2 * tan(xFovRad / 2));
+    double yPinholeFocus = newSize.height / (2 * tan(yFovRad / 2));
 
     cv::Mat cameraCoords(1, 3, CV_32F, float(0));
     cameraCoords.at<float>(0) = pixel.x * cz / xPinholeFocus;
@@ -223,7 +223,7 @@ cv::Point2d FisheyeDewarper::projectWorldToFisheye(cv::Mat worldPoint)
     double v = Y / lambda; 
 
     cv::Point fypixel( stretchMatrix * cv::Vec2d(u, v) + centerOffset );        // technically could do toCorner's job, but I'll keep it simple for now
-    toCorner(fypixel, newSize);
+    toCorner(fypixel, oldSize);
     return fypixel;
 }
 
@@ -283,8 +283,8 @@ void FisheyeDewarper::fillMapsScaramuzza()
             }
 
             // save distorted edge of the frame 
-            if (((j == 0 || j == oldSize.height - 1) && i % 100 == 0) ||
-                ((i == 0 || i == oldSize.width - 1) && j % 100 == 0))
+            if (((j == 0 || j == newSize.height - 1) && i % 100 == 0) ||
+                ((i == 0 || i == newSize.width - 1) && j % 100 == 0))
             {
                 frameBorder.push_back(cv::Point(distPoint.y, distPoint.x));
             }
