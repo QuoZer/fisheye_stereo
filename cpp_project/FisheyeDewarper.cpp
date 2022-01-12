@@ -134,7 +134,7 @@ cv::Mat FisheyeDewarper::projectPinholeToWorld(cv::Point pixel)
     cameraCoords.at<float>(0) = pixel.x * cz / xPinholeFocus;
     cameraCoords.at<float>(1) = pixel.y * cz / yPinholeFocus;
     cameraCoords.at<float>(2) = cz;
-
+    //std::cout << xPinholeFocus << " | " << yPinholeFocus << std::endl;
     return cameraCoords;
 }
 
