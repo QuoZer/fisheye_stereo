@@ -13,17 +13,18 @@
     tabsize=2, % Размер табуляции
     literate={--}{{-{}-}}2 % Корректно отображать двойной дефис
 }
-
-% Шрифты, xelatex
-\defaultfontfeatures{Ligatures=TeX}
-\setmainfont{Times New Roman} % Нормоконтроллеры хотят именно его
-\newfontfamily\cyrillicfont{Times New Roman}
-%\setsansfont{Liberation Sans} % Альтернатива нью роману, если его нет
-%\setmonofont{Cascadia Code ExtraLight} % Моноширинный шрифт для оформления кода
-
 % Русский язык
 \usepackage{polyglossia}
 \setdefaultlanguage{russian}
+\setotherlanguage{english}
+
+% Шрифты, xelatex
+\defaultfontfeatures{Ligatures=TeX}
+\setmainfont[Ligatures=TeX]{Times New Roman}
+\newfontfamily\cyrillicfont{Times New Roman}[Script=Cyrillic]
+%\setsansfont{Liberation Sans} % Альтернатива нью роману, если его нет
+\setmonofont{Consolas} % Моноширинный шрифт для оформления кода
+
 
 \usepackage{amssymb,amsfonts,amsmath} % Математика
 \numberwithin{equation}{section} % Формула вида секция.номер
@@ -49,7 +50,6 @@
     pdfauthor={Author},
     pdftitle={Title}
 }
-
 % Оформление библиографии и подрисуночных записей через точку
 \makeatletter
 \renewcommand*{\@biblabel}[1]{\hfill#1.}
@@ -70,7 +70,7 @@
 % Отступы у страниц
 \usepackage{geometry}
 \geometry{left=3cm}
-\geometry{right=1cm}
+\geometry{right=1.5cm}
 \geometry{top=2cm}
 \geometry{bottom=2cm}
 
@@ -165,10 +165,11 @@
 
 % Оформление заголовков
 \usepackage[compact,explicit]{titlesec}
-\titleformat{\section}{}{}{12.5mm}{\centering{\thesection\quad\MakeTextUppercase{#1}}\vspace{1.5em}}
-\titleformat{\subsection}[block]{\vspace{1em}}{}{12.5mm}{\thesubsection\quad#1\vspace{1em}}
+\titleformat{\section}{\bfseries}{}{12.5mm}{\centering{\thesection\quad\textbf{#1}}}   % \titleformat{\section}{}{}{12.5mm}{\centering{\thesection\quad\MakeTextUppercase{#1}}\vspace{1.5em}}
+\titleformat{\subsection}[block]{\bfseries}{}{12.5mm}{\thesubsection\quad\textbf{#1}}          %
 \titleformat{\subsubsection}[block]{\vspace{1em}\normalsize}{}{12.5mm}{\thesubsubsection\quad#1\vspace{1em}}
 \titleformat{\paragraph}[block]{\normalsize}{}{12.5mm}{\MakeTextUppercase{#1}}
+
 
 % Секции без номеров (введение, заключение...), вместо section*{}
 \newcommand{\anonsection}[1]{

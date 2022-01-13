@@ -12,37 +12,39 @@
 \tableofcontents % Содержание 
 \clearpage
 
-\anonsection{Введение}
+\anonsection{введение}
 \input{include/intro.tex}
 \section{Обзор опыта построения систем стереозрения с использованием сверхширокоугольных камер}
 \input{include/overview.tex}
 \input{include/virtualmodel.tex}
 \input{include/intro_conclusion.tex}
-\newpage
 
+\newpage
 \section{Система стереозрения}
-\input{include/stereosystem.tex}  % Описание системы: Какие этапы, элементы и тд
 \input{include/dewarping_process.tex}   % Как происходит выпрямление
+\input{include/stereosystem.tex}  % Описание системы: Какие этапы, элементы и тд
 \input{include/unity_model.tex}  % Моделирование системы 
 \input{include/camera_dewarping.tex}  % Про виртуальную камеру 
-% \include{}  % Про обратную проекцию 
-% \include{}  % Выводы по главе
+\input{include/system_conclusion.tex}  % Выводы по главе
 
-% \section{Экспериментальное сравнение...}
-% \include{}  % План экспериментов
+\newpage
+\section{Экспериментальное исследование системы стереозрения}
+\input{include/experiments_intro.tex}  % План экспериментов
 % \include{}  % Оценка равномерности поинтклауда стены
 % \include{}  % Выводы по главе
 
+\newpage
+\anonsection{Заключение}
+%\include{} %Заключение-заключение
 
-% \section{Заключение}
-% \include{} %Заключение-заключение
-
-
+\newpage
 \bibliographystyle{plain}
 \bibliography{refs}
 
+\newpage
 % Приложения
-%\include{} % Код скрипта
+\input{include/apps.tex}
+ % Код скрипта
 
 \end{document} 
 %%% Конец документа

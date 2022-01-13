@@ -219,7 +219,7 @@ cv::Point2d FisheyeDewarper::projectWorldToFisheye(cv::Mat worldPoint)
     errorsum += error; 
 
     lambda = sqrt(X * X + Y * Y) / rho;
-    double u = X / lambda;      // streth matrix + offset also go here
+    double u = X / lambda;      
     double v = Y / lambda; 
 
     cv::Point fypixel( stretchMatrix * cv::Vec2d(u, v) + centerOffset );        // technically could do toCorner's job, but I'll keep it simple for now
