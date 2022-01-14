@@ -105,17 +105,17 @@ extern "C"
             //  180 deg: 350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9)
             //  270 deg: 229.3778, -0.0016, 9.737 * pow(10, -7), -4.2154 * pow(10, -9)
             left_dewarper.setIntrinsics(350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9), cv::Vec2d(0, 0), cv::Matx22d(1, 0, 0, 1), 0.022);        // 270 deg coefs
-            left_dewarper.setSize(cv::Size(1080, 1080), cv::Size(1080, 1080), 90);
+            left_dewarper.setSize(cv::Size(1080, 1080), cv::Size(540, 540), 90);
             left_dewarper.setRpy(leftRot, 0, 0);
             left_dewarper.fillMaps(SCARAMUZZA);
 
             right_dewarper.setIntrinsics(350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9), cv::Vec2d(0, 0), cv::Matx22d(1, 0, 0, 1), 0.022);
-            right_dewarper.setSize(cv::Size(1080, 1080), cv::Size(1080, 1080), 90);
+            right_dewarper.setSize(cv::Size(1080, 1080), cv::Size(540, 540), 90);
             right_dewarper.setRpy(rightRot, 0, 0);
             right_dewarper.fillMaps(SCARAMUZZA);
 
-            cv::namedWindow("Fisheye disparity", cv::WindowFlags::WINDOW_AUTOSIZE);
-            cv::namedWindow("Regular disparity", cv::WindowFlags::WINDOW_AUTOSIZE);
+            //cv::namedWindow("Fisheye disparity", cv::WindowFlags::WINDOW_AUTOSIZE);
+            //cv::namedWindow("Regular disparity", cv::WindowFlags::WINDOW_AUTOSIZE);
 
         }
         
@@ -148,6 +148,9 @@ extern "C"
         cv::Mat cam1 = cv::Mat(height, width, CV_8UC4, raw[numOfCam1]);
         cv::Mat cam2 = cv::Mat(height, width, CV_8UC4, raw[numOfCam2]);
 
+        cv::Mat de_cam1 = cv::Mat(540, 540, CV_8UC4);
+        cv::Mat de_cam2 = cv::Mat(540, 540, CV_8UC4);
+
         cvtColor(cam1, cam1, cv::COLOR_BGRA2RGB);
         flip(cam1, cam1, 0);
         cvtColor(cam2, cam2, cv::COLOR_BGRA2RGB);
@@ -163,18 +166,24 @@ extern "C"
         string left_path;
         string right_path;
         if (cameraType == CAMERA_REGULAR) {
-            left_path = "D:/Work/Coding/Repos/RTC_Practice/fisheye_stereo/data/stereo_img/l" + to_string(screenIndex) + "_reg_shot.jpg";
-            right_path = "D:/Work/Coding/Repos/RTC_Practice/fisheye_stereo/data/stereo_img/r" + to_string(screenIndex) + "_reg_shot.jpg";
+            left_path =  "D:/Work/Coding/Repos/RTC_Practice/fisheye_stereo/data/stereo_img/" + to_string(screenIndex) + "_reg_l_shot.jpg";
+            right_path = "D:/Work/Coding/Repos/RTC_Practice/fisheye_stereo/data/stereo_img/" + to_string(screenIndex) + "_reg_r_shot.jpg";
+            cv::imwrite(left_path, cam1);
+            cv::imwrite(right_path, cam2);
         }
         else {
-            cam1 = left_dewarper.dewrapImage(cam1);    // undistort 
-            cam2 = right_dewarper.dewrapImage(cam2);
-            left_path = "D:/Work/Coding/Repos/RTC_Practice/fisheye_stereo/data/stereo_img/l" + to_string(screenIndex) + "_fy_shot.jpg";
-            right_path = "D:/Work/Coding/Repos/RTC_Practice/fisheye_stereo/data/stereo_img/r" + to_string(screenIndex) + "_fy_shot.jpg";
+            //de_cam1 = ;     
+            de_cam2 = right_dewarper.dewrapImage(cam2);
+            de_cam1 = left_dewarper.dewrapImage(cam1);
+            left_path =  "D:/Work/Coding/Repos/RTC_Practice/fisheye_stereo/data/stereo_img/" + to_string(screenIndex) + "_fy_l_shot.jpg";
+            right_path = "D:/Work/Coding/Repos/RTC_Practice/fisheye_stereo/data/stereo_img/" + to_string(screenIndex) + "_fy_r_shot.jpg";
+
+            cv::imwrite(left_path, de_cam1(cv::Rect(0, 0, 540, 540)));
+            cv::imwrite(right_path, de_cam2(cv::Rect(0, 0, 540, 540)));
         }
 
-        cv::imwrite(left_path, cam1);
-        cv::imwrite(right_path, cam2);
+        //cv::imwrite(left_path, cam1);
+        //cv::imwrite(right_path, cam2);
 
         if (isShow)
         {

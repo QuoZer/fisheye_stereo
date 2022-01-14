@@ -194,54 +194,6 @@ public class Connector : MonoBehaviour
         return screenShot;
     }
 
-    //unsafe void TextureToCVMat(Texture2D raw1, Texture2D raw2)
-    //{
-    //    Color32[] rawColor1 = raw1.GetPixels32();
-    //    Color32[] rawColor2 = raw2.GetPixels32();
-
-    //    Color32*[] rawColors = new Color32*[2];
-
-    //    fixed (Color32* p1 = rawColor1, p2 = rawColor2)
-    //    {
-    //        rawColors[0] = p1;
-    //        rawColors[1] = p2;
-    //        fixed (Color32** pointer = rawColors)
-    //        {
-    //            getImages((IntPtr)pointer, width, height, 2, showImages, sgbm);   // OCV gets images
-    //        }
-    //    }
-
-    //    Destroy(raw1);
-    //    Destroy(raw2);
-
-    //    raw1 = null;
-    //    raw2 = null;
-    //}
-
-    //unsafe void Screenshoter(Texture2D raw1, Texture2D raw2, int numOfCam, bool show)
-    //{
-    //    Color32[] rawColor1 = raw1.GetPixels32();
-    //    Color32[] rawColor2 = raw2.GetPixels32();
-
-    //    Color32*[] rawColors = new Color32*[2];
-    //fixed (Color32* p1 = rawColor1, p2 = rawColor2)
-    //    {
-    //        rawColors[0] = p1;
-    //        rawColors[1] = p2;
-    //        fixed (Color32** pointer = rawColors)
-    //        {
-    //            //takeScreenshot((IntPtr)pointer, width, height, numOfCam, show);
-    //            takeStereoScreenshot((IntPtr)pointer, width, height, 0, 1, show);
-    //        }
-    //    }
-
-    //    Destroy(raw1);
-    //    Destroy(raw2);
-
-    //    raw1 = null;
-    //    raw2 = null;
-    //}
-
 
     void InitTexture()
     {
