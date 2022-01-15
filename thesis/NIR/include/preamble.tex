@@ -24,6 +24,7 @@
 \newfontfamily\cyrillicfont{Times New Roman}[Script=Cyrillic]
 %\setsansfont{Liberation Sans} % Альтернатива нью роману, если его нет
 \setmonofont{FreeMono} % Моноширинный шрифт для оформления кода
+\newfontfamily{\cyrillicfonttt}{FreeMono}
 
 
 \usepackage{amssymb,amsfonts,amsmath} % Математика
@@ -108,6 +109,13 @@
     \fancyhf{}
     \rhead{\thepage}
 }
+
+% GOST - biblatex
+\usepackage[% 
+bibstyle=gost-numeric, %подключение одного из четырех главных стилей biblatex-gost 
+sorting=ntvy, %тип сортировки в библиографии
+]{biblatex}
+\addbibresource{refs.bib}
 
 % Формат подрисуночных надписей
 \RequirePackage{caption}
