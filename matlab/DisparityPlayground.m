@@ -1,111 +1,74 @@
 
-base_path = "D:\Work\Coding\Repos\RTC_Practice\fisheye_stereo\data\stereo_img\compar\plane12.5m\";
+SHOW = false;
+distances = [5 7.5 10 12.5 15];
+regErrors = [];
+fyErrors = [];
 
-targetDistance = 12.5;
-target_roi = [-0.4 0.6 -0.6 0.46 targetDistance/10-0.05 targetDistance/10+0.05];
+for dst = distances
 
-targetParamsVector = [0, 0, 1, -targetDistance/10];   % normal + distance
-ref_model = planeModel(targetParamsVector);
-
-SHOW = true;
-
-%%%     FISHEYE        %%%
-
-imgRight = base_path + "fy_r_shot.jpg";
-imgLeft = base_path + "fy_l_shot.jpg";
-
-lImage = imread(imgLeft);
-rImage = imread(imgRight);
-lImage = imcrop(lImage,[0 0 540 540]);
-rImage = imcrop(rImage,[0 0 540 540]);
-
-
-[frameLeftRect, frameRightRect] = rectifyStereoImages(lImage, rImage, newFisheyeStereoParams);
-
-figure;
-imtool(stereoAnaglyph(frameLeftRect, frameRightRect));
-title('Rectified Video Frames');
-
-frameLeftGray  = rgb2gray(frameLeftRect);
-frameRightGray = rgb2gray(frameRightRect);
-    
-disparityMap = disparitySGM(frameLeftGray, frameRightGray);
-% figure;
-% imshow(disparityMap, [0, 64]);
-% title('Disparity Map');
-% colormap jet
-% colorbar
-
-points3D = reconstructScene(disparityMap, newFisheyeStereoParams);
-points3D = points3D ./ 1000;
-ptCloud = pointCloud(points3D, 'Color', frameLeftRect);
-indicies = findPointsInROI(ptCloud, target_roi);
-ptCloud = select(ptCloud, indicies);
-
-% maxDistance = 0.02;
-% referenceVector = [0, 0, 1];
-% maxAngularDistance = 0;
-% [model1,inlierIndices,outlierIndices, meanError] = pcfitplane(ptCloud,maxDistance,referenceVector,maxAngularDistance);
-% plane1 = select(ptCloud,inlierIndices);
-% remainPtCloud = select(ptCloud,outlierIndices);
-% meanError   % mean square error in distance
-
-disp("FISHEYE ERROR: ")
-disp(findMSE(ptCloud,  ref_model))
-
-
-if (SHOW)
-    % Visualize the point cloud
-    figure('Name','Fisheye depth')
-    pcshow(ptCloud);
-    hold on
-    plot(ref_model, 'color', 'white')
-    hold off  
+    %%%     FISHEYE        %%%
+    fy_e = computePlaneError(newFisheyeStereoParams, dst, "fy", SHOW);
+    fyErrors = [fyErrors fy_e];
+    %%%     REGULAR        %%%
+    reg_e = computePlaneError(newRegularStereoParams, dst, "reg", SHOW);
+    regErrors = [regErrors reg_e];
+    disp("Distance  ready")
 end
 
+createfigure(distances, [regErrors; fyErrors])
 
-%%%     REGULAR        %%%
 
-imgRight = base_path + "reg_r_shot.jpg";
-imgLeft = base_path + "reg_l_shot.jpg";
 
-lImage = imread(imgLeft);
-rImage = imread(imgRight);
+function [MSE]  = computePlaneError(stereoParams, distance, type, show)
+    base_path = "D:\Work\Coding\Repos\RTC_Practice\fisheye_stereo\data\stereo_img\compar\plane" + string(distance) + "m\";
 
-[frameLeftRect, frameRightRect] = rectifyStereoImages(lImage, rImage, newRegularStereoParams);
+    targetDistance = distance;
+    target_roi = [-0.4 0.6 -0.6 0.46 targetDistance/10-0.05 targetDistance/10+0.05];
 
-%figure;
-%imshow(stereoAnaglyph(frameLeftRect, frameRightRect));
-%title('Rectified Video Frames');
+    targetParamsVector = [0, 0, 1, -targetDistance/10];   % normal + distance
+    ref_model = planeModel(targetParamsVector);
 
-frameLeftGray  = rgb2gray(frameLeftRect);
-frameRightGray = rgb2gray(frameRightRect);
-    
-disparityMapReg = disparitySGM(frameLeftGray, frameRightGray);
-% figure;
-% imshow(disparityMapReg, [0, 64]);
-% title('Disparity Map');
-% colormap jet
-% colorbar
+    imgRight = base_path + type + "_r_shot.jpg";
+    imgLeft = base_path + type + "_l_shot.jpg";
 
-points3Dreg = reconstructScene(disparityMapReg, newRegularStereoParams);
-points3Dreg = points3Dreg ./ 1000;
-ptCloud = pointCloud(points3Dreg, 'Color', frameLeftRect);
-indicies = findPointsInROI(ptCloud, target_roi);
-ptCloud = select(ptCloud, indicies);
+    lImage = imread(imgLeft);
+    rImage = imread(imgRight);
 
-disp("REGULAR ERROR: ")
-disp(findMSE(ptCloud,  ref_model))
+    [frameLeftRect, frameRightRect] = rectifyStereoImages(lImage, rImage, stereoParams);
 
-if (SHOW)
-    % Visualize the point cloud
-    figure('Name','Regular depth')
-    pcshow(ptCloud);
-    hold on
-    plot(ref_model, 'color', 'white')
-    hold off
+    %figure;
+    %imshow(stereoAnaglyph(frameLeftRect, frameRightRect));
+    %title('Rectified Video Frames');
+
+    frameLeftGray  = rgb2gray(frameLeftRect);
+    frameRightGray = rgb2gray(frameRightRect);
+
+    disparityMapReg = disparitySGM(frameLeftGray, frameRightGray);
+    % figure;
+    % imshow(disparityMapReg, [0, 64]);
+    % title('Disparity Map');
+    % colormap jet
+    % colorbar
+
+    points3Dreg = reconstructScene(disparityMapReg, stereoParams);
+    points3Dreg = points3Dreg ./ 1000;
+    ptCloud = pointCloud(points3Dreg, 'Color', frameLeftRect);
+    indicies = findPointsInROI(ptCloud, target_roi);
+    ptCloud = select(ptCloud, indicies);
+
+    MSE = findMSE(ptCloud,  ref_model);
+
+    if (show)    
+        disp(type+"ERROR: ")
+        disp(MSE)
+        % Visualize the point cloud
+        figure('Name',type+' depth')
+        pcshow(ptCloud);
+        hold on
+        plot(ref_model, 'color', 'white')
+        hold off
+    end
 end
-
 
 function [MSE] = findMSE(pt_cloud, plane_model)
     errorSum = 0.0;
@@ -132,9 +95,34 @@ end
 function [error] = findSquareError(point, plane)
     planePoint = [0, 0, -plane.Parameters(4)];  % plane center
     PQ = point - planePoint;
-    error = (dot(PQ, plane.Normal) )^2;     % squared difference
+    error = (dot(PQ, plane.Normal)*10 )^2;     % squared difference
 end
 
+function createfigure(X1, YMatrix1)
+%CREATEFIGURE(X1, YMatrix1)
+%  X1:  vector of x data
+%  YMATRIX1:  matrix of y data
+
+%  Auto-generated by MATLAB on 16-Jan-2022 01:57:16
+
+% Create figure
+figure1 = figure;
+
+% Create axes
+axes1 = axes('Parent',figure1);
+hold(axes1,'on');
+
+% Create multiple lines using matrix input to plot
+plot1 = plot(X1,YMatrix1,'Marker','square');
+set(plot1(1),'DisplayName','"Традиционная" стереопара');
+set(plot1(2),'DisplayName','Предлагаемая стереосистема');
+
+box(axes1,'on');
+% Create legend
+legend1 = legend(axes1,'show');
+set(legend1,...
+    'Position',[0.162190967171953 0.839128075819668 0.282608689173408 0.0604304619972279]);
+end
 
 % maxDistance = 0.02;
 % referenceVector = [0, 0, 1];
