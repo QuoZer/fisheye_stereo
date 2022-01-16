@@ -43,7 +43,8 @@ function [MSE]  = computePlaneError(stereoParams, distance, type, show)
     frameLeftGray  = rgb2gray(frameLeftRect);
     frameRightGray = rgb2gray(frameRightRect);
 
-    disparityMapReg = disparitySGM(frameLeftGray, frameRightGray);
+    disparityMapReg = disparitySGM(frameLeftGray, frameRightGray);          %disparityBM
+    
     % figure;
     % imshow(disparityMapReg, [0, 64]);
     % title('Disparity Map');
