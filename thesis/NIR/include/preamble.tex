@@ -86,14 +86,7 @@
 \renewcommand{\labelitemi}{--} % Маркет списка --
 \renewcommand{\labelenumi}{\asbuk{enumi})} % Список второго уровня
 \renewcommand{\labelenumii}{\arabic{enumii})} % Список третьего уровня
-
-% Содержание
-\usepackage{tocloft}
-\renewcommand{\cfttoctitlefont}{\hspace{0.38\textwidth}\MakeTextUppercase} % СОДЕРЖАНИЕ
-\renewcommand{\cftsecfont}{\hspace{0pt}}            % Имена секций в содержании не жирным шрифтом
-\renewcommand\cftsecleader{\cftdotfill{\cftdotsep}} % Точки для секций в содержании
-\renewcommand\cftsecpagefont{\mdseries}             % Номера страниц не жирные
-\setcounter{tocdepth}{3}                            % Глубина оглавления, до subsubsection
+                    % Глубина оглавления, до subsubsection
 
 % Нумерация страниц по центру снизу
 \usepackage{fancyhdr}
@@ -109,6 +102,15 @@
     \fancyhf{}
     \rhead{\thepage}
 }
+% Содержание
+\usepackage{tocloft}
+\renewcommand{\cftaftertoctitle}{
+    \thispagestyle{plain}}     % Убирает номер страницы
+\renewcommand{\cfttoctitlefont}{\hspace{0.38\textwidth}\MakeTextUppercase} % СОДЕРЖАНИЕ
+\renewcommand{\cftsecfont}{\hspace{0pt}}            % Имена секций в содержании не жирным шрифтом
+\renewcommand\cftsecleader{\cftdotfill{\cftdotsep}} % Точки для секций в содержании
+\renewcommand\cftsecpagefont{\mdseries}             % Номера страниц не жирные
+\setcounter{tocdepth}{3}        
 
 % GOST - biblatex
 \usepackage[% 
@@ -139,13 +141,13 @@ sorting=ntvy, %тип сортировки в библиографии
         \caption{#3} \label{#4}
     \end{figure}
 }
-\newcommand{\addtwoimghere}[5]{ % Вставка двух рисунков
+\newcommand{\addtwoimghere}[6]{ % Вставка двух рисунков
     \begin{figure}[H]
         \centering
         \includegraphics[width=#2\linewidth]{#1}
-        \hfill
-        \includegraphics[width=#3\linewidth]{#2}
-        \caption{#4} \label{#5}
+        \hspace{1cm}
+        \includegraphics[width=#4\linewidth]{#3}
+        \caption{#5} \label{#6}
     \end{figure}
 }
 \newcommand{\addimgapp}[2]{ % Это костыль для приложения Б
@@ -173,7 +175,7 @@ sorting=ntvy, %тип сортировки в библиографии
 
 % Оформление заголовков
 \usepackage[compact,explicit]{titlesec}
-\titleformat{\section}{\bfseries}{}{12.5mm}{\centering{\thesection\quad\textbf{#1}}}   % \titleformat{\section}{}{}{12.5mm}{\centering{\thesection\quad\MakeTextUppercase{#1}}\vspace{1.5em}}
+\titleformat{\section}{\bfseries}{}{0mm}{\centering{\thesection\quad\textbf{#1}}}   % \titleformat{\section}{}{}{12.5mm}{\centering{\thesection\quad\MakeTextUppercase{#1}}\vspace{1.5em}}
 \titleformat{\subsection}[block]{\bfseries}{}{12.5mm}{\thesubsection\quad\textbf{#1}}          %
 \titleformat{\subsubsection}[block]{\vspace{1em}\normalsize}{}{12.5mm}{\thesubsubsection\quad#1\vspace{1em}}
 \titleformat{\paragraph}[block]{\normalsize}{}{12.5mm}{\MakeTextUppercase{#1}}
@@ -182,7 +184,7 @@ sorting=ntvy, %тип сортировки в библиографии
 % Секции без номеров (введение, заключение...), вместо section*{}
 \newcommand{\anonsection}[1]{
     \phantomsection % Корректный переход по ссылкам в содержании
-    \paragraph{\centerline{{#1}}\vspace{1.5em}}
+    \paragraph{\centerline{{#1}}\vspace{0em}}
     \addcontentsline{toc}{section}{\uppercase{#1}}
 }
 

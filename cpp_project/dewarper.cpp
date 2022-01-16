@@ -209,7 +209,7 @@ int main(int argc, char** argv)
     FisheyeDewarper r_dewarper;
     r_dewarper.setIntrinsics(350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9), cv::Vec2d(0, 0), cv::Matx22d(1, 0, 0, 1), 0.022);
     r_dewarper.setSize(origSize, newSize, 90);
-    r_dewarper.setRpy(-45, 0, 0);
+    r_dewarper.setRpy(0, 35, 10);
 
 
     while(true)         //  iterate through images       
