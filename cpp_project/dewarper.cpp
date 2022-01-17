@@ -84,7 +84,7 @@ void ShowManyImages(string title, int nArgs, ...) {
     }
     else if (nArgs == 3 || nArgs == 4) {
         w = 2; h = 2;
-        size = 300;
+        size = 540;
     }
     else if (nArgs == 5 || nArgs == 6) {
         w = 3; h = 2;
@@ -204,12 +204,12 @@ int main(int argc, char** argv)
     FisheyeDewarper dewarper;
     dewarper.setIntrinsics( 350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9), cv::Vec2d(0, 0), cv::Matx22d(1, 0, 0, 1), 0.022 );
     dewarper.setSize(origSize, newSize, 90);
-    dewarper.setRpy(45, 0, 0);
+    dewarper.setRpy(-45, 0, 0);
 
     FisheyeDewarper r_dewarper;
     r_dewarper.setIntrinsics(350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9), cv::Vec2d(0, 0), cv::Matx22d(1, 0, 0, 1), 0.022);
     r_dewarper.setSize(origSize, newSize, 90);
-    r_dewarper.setRpy(0, 35, 10);
+    r_dewarper.setRpy(45, 0, 0);
 
 
     while(true)         //  iterate through images       
@@ -260,7 +260,7 @@ int main(int argc, char** argv)
         // Converting images to grayscale
         //cv::cvtColor(leftImageRemapped, leftImageRemapped, cv::COLOR_BGR2GRAY);
         //cv::cvtColor(rightImageRemapped, rightImageRemapped, cv::COLOR_BGR2GRAY);
-        ShowManyImages("Images", 4, leftImageRemapped, rightImageRemapped, left, right);
+        ShowManyImages("Images", 4, right, left,leftImageRemapped, rightImageRemapped  );
         // Displaying the disparity map
         //cv::imshow("disparity", leftImageRemapped);
         

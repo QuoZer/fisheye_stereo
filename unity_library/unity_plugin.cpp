@@ -1,3 +1,5 @@
+﻿// surroundView.cpp: ���������� ���������������� ������� ��� ���������� DLL.
+
 //#include "stdafx.h"
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/ocl.hpp>
@@ -98,7 +100,7 @@ extern "C"
             rawData.push_back(0);
         }
 
-        if (cameraType == CAMERA_FISHEYE) 
+        if (cameraType == CAMERA_FISHEYE)
         {
             //  180 deg: 350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9)
             //  270 deg: 229.3778, -0.0016, 9.737 * pow(10, -7), -4.2154 * pow(10, -9)
@@ -116,8 +118,8 @@ extern "C"
             //cv::namedWindow("Regular disparity", cv::WindowFlags::WINDOW_AUTOSIZE);
 
         }
-        
-        stereo = cv::StereoSGBM::create();            
+
+        stereo = cv::StereoSGBM::create();
         return 0;
     }
 
@@ -152,12 +154,20 @@ extern "C"
         cvtColor(cam1, cam1, cv::COLOR_BGRA2RGB);
         flip(cam1, cam1, 0);
         cvtColor(cam2, cam2, cv::COLOR_BGRA2RGB);
+        flip(cam2, cam2, 0);
+
+        cv::hconcat(cam1, cam2, stereo);        // horizontal concatation
+        cam1.copyTo(stereo(cv::Rect(0, 0, width, height)));
+        cam2.copyTo(stereo(cv::Rect(width, 0, width, height)));
+
 
         screenIndex++;
+        //      hardcoded image path((((
         string left_path;
         string right_path;
+        string stereo_path;
         if (cameraType == CAMERA_REGULAR) {
-            left_path =  "D:/Work/Coding/Repos/RTC_Practice/fisheye_stereo/data/stereo_img/" + to_string(screenIndex) + "_reg_l_shot.jpg";
+            left_path = "D:/Work/Coding/Repos/RTC_Practice/fisheye_stereo/data/stereo_img/" + to_string(screenIndex) + "_reg_l_shot.jpg";
             right_path = "D:/Work/Coding/Repos/RTC_Practice/fisheye_stereo/data/stereo_img/" + to_string(screenIndex) + "_reg_r_shot.jpg";
             cv::imwrite(left_path, cam1);
             cv::imwrite(right_path, cam2);
@@ -166,11 +176,17 @@ extern "C"
             //de_cam1 = ;     
             de_cam2 = right_dewarper.dewrapImage(cam2);
             de_cam1 = left_dewarper.dewrapImage(cam1);
-            left_path =  "D:/Work/Coding/Repos/RTC_Practice/fisheye_stereo/data/stereo_img/" + to_string(screenIndex) + "_fy_l_shot.jpg";
+            left_path = "D:/Work/Coding/Repos/RTC_Practice/fisheye_stereo/data/stereo_img/" + to_string(screenIndex) + "_fy_l_shot.jpg";
             right_path = "D:/Work/Coding/Repos/RTC_Practice/fisheye_stereo/data/stereo_img/" + to_string(screenIndex) + "_fy_r_shot.jpg";
+            stereo_path = "D:/Work/Coding/Repos/RTC_Practice/fisheye_stereo/data/stereo_img/" + to_string(screenIndex) + "_stereo_shot.jpg";
 
             cv::imwrite(left_path, de_cam1(cv::Rect(0, 0, 540, 540)));
             cv::imwrite(right_path, de_cam2(cv::Rect(0, 0, 540, 540)));
+            cv::imwrite(stereo_path, stereo);
+        }
+
+        //cv::imwrite(left_path, cam1);
+        //cv::imwrite(right_path, cam2);
 
         if (isShow)
         {
@@ -254,49 +270,49 @@ extern "C"
     }
 }
 
-    void fillStereoParams(SGBMparams& sgbm)
-    {
-        stereo->setBlockSize(sgbm.blockSize * 2 + 5);
-        stereo->setPreFilterCap(sgbm.preFilterCap);
-        //stereo->setPreFilterSize(sgbm.preFilterSize*2+5);
-        stereo->setP1(sgbm.preFilterSize);
-        stereo->setMinDisparity(sgbm.minDisparity);
-        stereo->setNumDisparities(sgbm.numDisparities * 16);
-        //stereo->setTextureThreshold(sgbm.textureThreshold);
-        stereo->setP2(sgbm.textureThreshold);
-        stereo->setUniquenessRatio(sgbm.uniquenessRatio);
-        stereo->setSpeckleWindowSize(sgbm.speckleWindowSize * 2);
-        stereo->setSpeckleRange(sgbm.speckleRange);
-        stereo->setDisp12MaxDiff(sgbm.disp12MaxDiff);
-        // 2 pass expensive method
-        // stereo->setMode(cv::StereoSGBM::MODE_HH);
+void fillStereoParams(SGBMparams& sgbm)
+{
+    stereo->setBlockSize(sgbm.blockSize * 2 + 5);
+    stereo->setPreFilterCap(sgbm.preFilterCap);
+    //stereo->setPreFilterSize(sgbm.preFilterSize*2+5);
+    stereo->setP1(sgbm.preFilterSize);
+    stereo->setMinDisparity(sgbm.minDisparity);
+    stereo->setNumDisparities(sgbm.numDisparities * 16);
+    //stereo->setTextureThreshold(sgbm.textureThreshold);
+    stereo->setP2(sgbm.textureThreshold);
+    stereo->setUniquenessRatio(sgbm.uniquenessRatio);
+    stereo->setSpeckleWindowSize(sgbm.speckleWindowSize * 2);
+    stereo->setSpeckleRange(sgbm.speckleRange);
+    stereo->setDisp12MaxDiff(sgbm.disp12MaxDiff);
+    // 2 pass expensive method
+    // stereo->setMode(cv::StereoSGBM::MODE_HH);
 
+}
+
+cv::Mat calculateDisparities(cv::Mat leftImage, cv::Mat rightImage, int cameraType) {
+    cv::Mat disp;
+    // Converting images to grayscale
+    cv::cvtColor(leftImage, leftImage, cv::COLOR_BGR2GRAY);
+    cv::cvtColor(rightImage, rightImage, cv::COLOR_BGR2GRAY);
+
+    // Calculating disparith using the StereoBM algorithm
+    stereo->compute(leftImage, rightImage, disp);
+
+    // Converting disparity values to CV_32F from CV_16S
+    disp.convertTo(disp, CV_32F, 1.0);
+
+    // Scaling down the disparity values and normalizing them 
+    disp = (disp / 16.0f - (float)stereo->getMinDisparity()) / ((float)stereo->getNumDisparities());
+
+    if (cameraType == CAMERA_FISHEYE) {
+        fisheyeDisparity = disp;
+        imshow("Fisheye disparity", fisheyeDisparity);
     }
-
-    cv::Mat calculateDisparities(cv::Mat leftImage, cv::Mat rightImage, int cameraType) {
-        cv::Mat disp;
-        // Converting images to grayscale
-        cv::cvtColor(leftImage, leftImage, cv::COLOR_BGR2GRAY);
-        cv::cvtColor(rightImage, rightImage, cv::COLOR_BGR2GRAY);
-
-        // Calculating disparith using the StereoBM algorithm
-        stereo->compute(leftImage, rightImage, disp);
-
-        // Converting disparity values to CV_32F from CV_16S
-        disp.convertTo(disp, CV_32F, 1.0);
-
-        // Scaling down the disparity values and normalizing them 
-        disp = (disp / 16.0f - (float)stereo->getMinDisparity()) / ((float)stereo->getNumDisparities());
-
-        if (cameraType == CAMERA_FISHEYE) {
-            fisheyeDisparity = disp;
-            imshow("Fisheye disparity", fisheyeDisparity);
-        }
-        if (cameraType == CAMERA_REGULAR) {
-            regularDisparity = disp;
-            imshow("Regular disparity", regularDisparity);
-        }
-        cv::waitKey(1);
-
-        return disp;
+    if (cameraType == CAMERA_REGULAR) {
+        regularDisparity = disp;
+        imshow("Regular disparity", regularDisparity);
     }
+    cv::waitKey(1);
+
+    return disp;
+}
