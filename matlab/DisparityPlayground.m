@@ -1,16 +1,16 @@
 
 SHOW = false;
-distances = [4 5 6 7.5 10 12.5 15]; %  //  13
+distances = [1 2 4 5 6 7.5 10]; %4 5 6 7.5 10 12.5 15  //  13
 regErrors = [];
 fyErrors = [];
 
 for dst = distances
 
     %%%     FISHEYE        %%%
-    fy_e = computePlaneError(newFisheyeStereoParams, dst, "fy", SHOW);
+    fy_e = computePlaneError(fisheye03mStereoParams, dst, "fy", SHOW);
     fyErrors = [fyErrors fy_e];
     %%%     REGULAR        %%%
-    reg_e = computePlaneError(newRegularStereoParams, dst, "reg", SHOW);
+    reg_e = computePlaneError(regular03mStereoParams, dst, "reg", SHOW);
     regErrors = [regErrors reg_e];
     disp("Distance  ready")
 end
@@ -20,7 +20,7 @@ createfigure(distances, [regErrors; fyErrors])
 
 
 function [MSE]  = computePlaneError(stereoParams, distance, type, show)
-    base_path = "D:\Work\Coding\Repos\RTC_Practice\fisheye_stereo\data\stereo_img\compar\plane" + string(distance) + "m\";
+    base_path = "D:\Work\Coding\Repos\RTC_Practice\fisheye_stereo\data\stereo_img\compar0.3m\plane" + string(distance) + "m\";
 
     targetDistance = distance;
     target_roi = [-0.4 0.6 -0.6 0.46 targetDistance/10-0.05 targetDistance/10+0.05];
