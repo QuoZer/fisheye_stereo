@@ -17,3 +17,7 @@ unity_project/Assets/Plugins/unity_plugin.dll
 thesis/NIR/main.synctex.gz
 thesis/NIR/main.synctex.gz
 unity_project/.vs/unity_project/v16/.suo
+*.bcf
+*.xml
+*.gz
+*.upa
