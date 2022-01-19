@@ -14,22 +14,23 @@ if (RECALCULATE)
     
     for dst = distances
         %%%     FISHEYE        %%%
-        [fy_e, fy_disp] = computePlaneError(newFisheyeStereoParams, dst, "fy", SHOW);
+        [fy_e, fy_disp] = computePlaneError(newFisheyeStereoParams, dst, "fy");
         fyData = [fyData [fy_e; fy_disp]];
         %%%     REGULAR        %%%
-        [reg_e, reg_disp] = computePlaneError(newRegularStereoParams, dst, "reg", SHOW);
+        [reg_e, reg_disp] = computePlaneError(newRegularStereoParams, dst, "reg");
         regData = [regData [reg_e; reg_disp]];
         disp("Distance  ready")
     end
 end
-figure
-errorbar(distances, regData(1,:), regData(2,:) ); hold on;
-errorbar(distances, fyData(1,:), fyData(2,:) );
-%createfigure(distances, [regErrors; fyErrors])
+
+createfigure(distances, [regData; fyData])
 
 
 
 function [MSE, D]  = computePlaneError(stereoParams, distance, type)
+    global  BasePath;
+    global SHOW;
+    global Scale;
     base_path = BasePath + string(distance) + "m\";  % compar0.3m
 
     targetDistance = distance;
@@ -82,6 +83,7 @@ function [MSE, D]  = computePlaneError(stereoParams, distance, type)
 end
 
 function [MSE, D] = findMSE(pt_cloud, plane_model)
+    global Scale;
     error_sum = 0.0;
     squaredError_sum = 0.0;
 %    figure;
@@ -117,9 +119,12 @@ axes1 = axes('Parent',figure1);
 hold(axes1,'on');
 
 % Create multiple lines using matrix input to plot
-plot1 = plot(X1,YMatrix1,'Marker','square');
+YMatrix1
+plot1  = errorbar(X1, YMatrix1(1,:), YMatrix1(2,:) ); hold on;
+plot2 = errorbar(X1, YMatrix1(3,:), YMatrix1(4,:) );
+%plot1 = plot(X1,YMatrix1,'Marker','square');
 set(plot1(1),'DisplayName','"Традиционная" стереопара');
-set(plot1(2),'DisplayName','Предлагаемая стереосистема');
+set(plot2(1),'DisplayName','Предлагаемая стереосистема');
 
 % Create ylabel
 ylabel('Ошибка оценки  поверхности, м');
