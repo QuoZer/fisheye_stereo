@@ -1,9 +1,11 @@
-RECALCULATE = false;
+close all;
+
+RECALCULATE = true;
 global SHOW BasePath Scale;
 SHOW = false;
 BasePath = "D:\Work\Coding\Repos\RTC_Practice\fisheye_stereo\data\stereo_img\compar\plane";
 Scale = 10; 
-distances = [4 5 6 7.5 10 12.5 15]; % 1m: 4 5 6 7.5 10 12.5 15  //  0.3m: 1 2 4 5 6 7.5 10
+distances = [ 4 5 6 7.5 9 10 11 12 12.5 13 14 15]; % 1m:   //  0.3m: 1 2 4 5 6 7.5 10 // 0.05m: 1 2 3 4 5 6 8 10 12
 
 
 if (RECALCULATE)
@@ -11,14 +13,15 @@ if (RECALCULATE)
     reg_disp = [];    
     fyData = [];
     fy_disp = [];
+    means = [];
     
     for dst = distances
         %%%     FISHEYE        %%%
-        [fy_e, fy_disp] = computePlaneError(newFisheyeStereoParams, dst, "fy");
-        fyData = [fyData [fy_e; fy_disp]];
+        [fy_e, fy_disp, fy_mean] = computePlaneError(newFisheyeStereoParams, dst, "fy");
+        fyData = [fyData [fy_e; fy_disp; fy_mean]];
         %%%     REGULAR        %%%
-        [reg_e, reg_disp] = computePlaneError(newRegularStereoParams, dst, "reg");
-        regData = [regData [reg_e; reg_disp]];
+        [reg_e, reg_disp, reg_mean] = computePlaneError(newRegularStereoParams, dst, "reg");
+        regData = [regData [reg_e; reg_disp; reg_mean]];
         disp("Distance  ready")
     end
 end
@@ -27,14 +30,14 @@ createfigure(distances, [regData; fyData])
 
 
 
-function [MSE, D]  = computePlaneError(stereoParams, distance, type)
+function [MSE, D, M]  = computePlaneError(stereoParams, distance, type)
     global  BasePath;
     global SHOW;
     global Scale;
     base_path = BasePath + string(distance) + "m\";  % compar0.3m
 
     targetDistance = distance;
-    target_roi = [-0.4 0.6 -0.6 0.46 targetDistance/Scale-0.05 targetDistance/Scale+0.05];
+    target_roi = [-0.4 0.6 -0.6 0.46 targetDistance/Scale-0.1 targetDistance/Scale+0.1];
 
     targetParamsVector = [0, 0, 1, -targetDistance/Scale];   % normal + distance
     ref_model = planeModel(targetParamsVector);
@@ -55,30 +58,34 @@ function [MSE, D]  = computePlaneError(stereoParams, distance, type)
     frameRightGray = rgb2gray(frameRightRect);
 
     disparityMapReg = disparitySGM(frameLeftGray, frameRightGray);          %disparityBM
-    
-    % figure;
-    % imshow(disparityMapReg, [0, 64]);
-    % title('Disparity Map');
-    % colormap jet
-    % colorbar
+   
 
     points3Dreg = reconstructScene(disparityMapReg, stereoParams);
     points3Dreg = points3Dreg ./ 1000;
     ptCloud = pointCloud(points3Dreg, 'Color', frameLeftRect);
     indicies = findPointsInROI(ptCloud, target_roi);
     ptCloud = select(ptCloud, indicies);
-% 
-    [MSE, D] = findMSE(ptCloud,  ref_model);
 
+    [MSE, D] = findMSE(ptCloud,  ref_model);
+%     MSE = 0;
+%     D  = 0;
+    M = mean(ptCloud.Location(:,3));
+    
     if (SHOW)    
         disp(type+"ERROR: ")
         disp(MSE)
         % Visualize the point cloud
-        figure('Name',type+' depth')
+        figure('Name',type+' depth'+string(targetDistance))
         pcshow(ptCloud);
         hold on
         plot(ref_model, 'color', 'white')
         hold off
+        
+        figure;
+        imshow(disparityMapReg, [0, 64]);
+        title('Disparity Map'+string(targetDistance));
+        colormap jet
+        colorbar
     end
 end
 
@@ -119,9 +126,9 @@ axes1 = axes('Parent',figure1);
 hold(axes1,'on');
 
 % Create multiple lines using matrix input to plot
-YMatrix1
+YMatrix1;
 plot1  = errorbar(X1, YMatrix1(1,:), YMatrix1(2,:) ); hold on;
-plot2 = errorbar(X1, YMatrix1(3,:), YMatrix1(4,:) );
+plot2 = errorbar(X1, YMatrix1(4,:), YMatrix1(5,:) );
 %plot1 = plot(X1,YMatrix1,'Marker','square');
 set(plot1(1),'DisplayName','"Традиционная" стереопара');
 set(plot2(1),'DisplayName','Предлагаемая стереосистема');
