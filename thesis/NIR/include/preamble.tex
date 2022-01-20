@@ -36,6 +36,7 @@
 \usepackage{multirow} % Сложные таблицы
 \usepackage{adjustbox}
 \usepackage{lscape}
+\usepackage{rotating}
 
 \usepackage{pdfcomment}     % тудущки и комменты
 \pdfcommentsetup{final} % set to 'final' to prevent all comments from showing up   draft
@@ -46,7 +47,7 @@
 \graphicspath{{pics/}{images/userguide/}{images/testing/}{images/infrastructure/}{extra/}{extra/drafts/}}
 
 % Формат подрисуночных записей
-\usepackage{chngcntr}
+\usepackage{chngcntr} 
 \counterwithin{figure}{section}
 
 % Гиперссылки
@@ -83,7 +84,7 @@
 
 % Списки
 \usepackage{enumitem}
-\setlist[enumerate,itemize]{leftmargin=12.7mm} % Отступы в списках
+\setlist[enumerate,itemize]{leftmargin=0mm,itemindent = 20mm} % Отступы в списках
 
 \makeatletter
     \AddEnumerateCounter{\asbuk}{\@asbuk}{м)}
@@ -93,6 +94,8 @@
 \renewcommand{\labelenumi}{\asbuk{enumi})} % Список второго уровня
 \renewcommand{\labelenumii}{\arabic{enumii})} % Список третьего уровня
                     % Глубина оглавления, до subsubsection
+\usepackage{scrextend}
+
 
 % Нумерация страниц по центру снизу
 \usepackage{fancyhdr}
@@ -122,6 +125,7 @@
 \usepackage[% 
 bibstyle=gost-numeric, %подключение одного из четырех главных стилей biblatex-gost 
 sorting=none, %тип сортировки в библиографии
+doi=false,  
 ]{biblatex}
 \addbibresource{refs.bib}
 
@@ -181,7 +185,7 @@ sorting=none, %тип сортировки в библиографии
 
 % Оформление заголовков
 \usepackage[compact,explicit]{titlesec}
-\titleformat{\section}{\bfseries}{}{0mm}{\centering{\thesection\quad\textbf{#1}}}   % \titleformat{\section}{}{}{12.5mm}{\centering{\thesection\quad\MakeTextUppercase{#1}}\vspace{1.5em}}
+\titleformat{\section}{\large\bfseries}{}{0mm}{\centering{\thesection\quad\textbf{#1}} }  % \titleformat{\section}{}{}{12.5mm}{\centering{\thesection\quad\MakeTextUppercase{#1}}\vspace{1.5em}}
 \titleformat{\subsection}[block]{\bfseries}{}{12.5mm}{\thesubsection\quad\textbf{#1}}          %
 \titleformat{\subsubsection}[block]{\vspace{1em}\normalsize}{}{12.5mm}{\thesubsubsection\quad#1\vspace{1em}}
 \titleformat{\paragraph}[block]{\normalsize}{}{12.5mm}{\MakeTextUppercase{#1}}
@@ -202,20 +206,20 @@ sorting=none, %тип сортировки в библиографии
 }
 
 % Библиография: отступы и межстрочный интервал
-\makeatletter
-\renewenvironment{thebibliography}[1]
-    {\section*{\refname}
-        \list{\@biblabel{\@arabic\c@enumiv}}
-           {\settowidth\labelwidth{\@biblabel{#1}}
-            \leftmargin\labelsep
-            \itemindent 16.7mm
-            \@openbib@code
-            \usecounter{enumiv}
-            \let\p@enumiv\@empty
-            \renewcommand\theenumiv{\@arabic\c@enumiv}
-        }
-        \setlength{\itemsep}{0pt}
-    }
-\makeatother
+% \makeatletter
+% \defbibenvironment{thebibliography}
+% {
+%     \list{\@biblabel{\@arabic\c@enumiv}}
+%         {\settowidth\labelwidth{\@biblabel{#1}}
+%         \leftmargin\labelsep
+%         \itemindent 16.7mm
+%         \@openbib@code
+%         \usecounter{enumiv}
+%         \let\p@enumiv\@empty
+%         \renewcommand\theenumiv{\@arabic\c@enumiv}}
+%         }
+%     \setlength{\itemsep}{0pt}
+%     }
+% \makeatother
 
 \setcounter{page}{2} % Начало нумерации страниц
