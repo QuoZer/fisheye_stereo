@@ -2,23 +2,24 @@
 
 \centering{Сравнение ПО для симуляции}
 
-\begin{landscape}
-    \begin{table}[H]             % TODO: Сыровато. Надо дополнить. Проверить ГОСТовость подписи  FIXME: Таблица не умещается, но вращать не хочется. 
-        \caption{Сравнение ПО для симуляции }
+
+    \begin{table}[h!]             % TODO: Сыровато. Надо дополнить. Проверить ГОСТовость подписи  FIXME: Таблица не умещается, но вращать не хочется. 
+        
+        %\caption{Сравнение ПО для симуляции }
         \label{tab:sims}
-        \begin{tabular}{|l|l|l|l|l|l|}
+        \rotatebox{90} {\begin{tabular}{|l|l|l|l|l|}
         \hline
-        \textbf{Название} & \textbf{\begin{tabular}[c]{@{}l@{}}Симуляция \\ fisheye-камер\end{tabular}} & \textbf{\begin{tabular}[c]{@{}l@{}}Реалистичное \\ моделирование\end{tabular}} & \textbf{Интеграция кода}                                            & \textbf{Доступность} & \textbf{Примечания} \\ \hline
-        Gazebo            & Возможна                                                                    & Возможно                                                                     & \begin{tabular}[c]{@{}l@{}}Возможна \\ посредством ROS\end{tabular} & Бесплатно            &                     \\ \hline
-        RoboDK            & Нет                                                                         & Затруднено                                                                     & Нет                                                                 & От 145€              &                     \\ \hline
-        Webots            & Затруднена                                                                  & Возможно                                                                       & Возможна                                                            & Бесплатно            &                     \\ \hline
-        CoppeliaSim       & Затруднена                                                                  & Затруднено                                                                     & Возможна                                                            & Бесплатно            &                     \\ \hline
-        NVIDIA Isaac Sim  & Возможна                                                                    & Возможно                                                                       & Возможна                                                            & Бесплатно            &                     \\ \hline
-        CARLA             & Затруднена                                                                  & Возможно                                                                       & Возможна                                                            & Бесплатно            &                     \\ \hline
-        Unity             & Возможна                                                                    & Возможно                                                                       & Возможна                                                            & Бесплатно            &                     \\ \hline
-        \end{tabular}
+        \textbf{Название} & \textbf{\begin{tabular}[c]{@{}l@{}}Симуляция \\ fisheye-камер\end{tabular}} & \textbf{\begin{tabular}[c]{@{}l@{}}Реалистичное \\ моделирование\end{tabular}} & \textbf{Интеграция кода}                                            & \textbf{Доступность}  \\ \hline
+        Gazebo            & Возможна                                                                    & Возможно                                                                     & \begin{tabular}[c]{@{}l@{}}Возможна \\ посредством ROS\end{tabular} & Бесплатно               \\ \hline
+        RoboDK            & Нет                                                                         & Затруднено                                                                     & Нет                                                                 & От 145€                \\ \hline
+        Webots            & Затруднена                                                                  & Возможно                                                                       & Возможна                                                            & Бесплатно              \\ \hline
+        CoppeliaSim       & Затруднена                                                                  & Затруднено                                                                     & Возможна                                                            & Бесплатно              \\ \hline
+        NVIDIA Isaac Sim  & Возможна                                                                    & Возможно                                                                       & Возможна                                                            & Бесплатно              \\ \hline
+        CARLA             & Затруднена                                                                  & Возможно                                                                       & Возможна                                                            & Бесплатно              \\ \hline
+        Unity             & Возможна                                                                    & Возможно                                                                       & Возможна                                                            & Бесплатно              \\ \hline
+        \end{tabular}}
+
     \end{table}
-\end{landscape}
 \clearpage
 
 

@@ -3,9 +3,9 @@ global SHOW BasePath Scale;
 
 RECALCULATE = false;
 SHOW = false;
-BasePath = "D:\Work\Coding\Repos\RTC_Practice\fisheye_stereo\data\stereo_img\compar\plane";
+BasePath = "D:\Work\Coding\Repos\RTC_Practice\fisheye_stereo\data\stereo_img\compar\plane";  %0.05m
 Scale = 10; 
-distances = [ 4 5 6 7.5 9 10 11 12 12.5 13 14 15 ]; % 1m: 4 5 6 7.5 9 10 11 12 12.5 13 14 15  //  0.3m: 1 2 4 5 6 7.5 10 // 0.05m: 1 2 3 4 5 6 8 10 12
+distances = [5 6 7.5 9 10 11 12 12.5 13 14 15 ]; % 0.5m: 4 5 6 7.5 9 10 11 12 12.5 13 14 15  //  0.3m: 1 2 4 5 6 7.5 10 // 0.05m: 1 2 3 4 5 6 8 10 12
 
 
 if (RECALCULATE)
@@ -27,7 +27,6 @@ if (RECALCULATE)
 end
 
 createfigure(distances, [regData; fyData])
-
 
 
 function [MSE, D, M]  = computePlaneError(stereoParams, distance, type)
@@ -57,7 +56,7 @@ function [MSE, D, M]  = computePlaneError(stereoParams, distance, type)
     frameLeftGray  = rgb2gray(frameLeftRect);
     frameRightGray = rgb2gray(frameRightRect);
 
-    disparityMapReg = disparitySGM(frameLeftGray, frameRightGray);          %disparityBM
+    disparityMapReg = disparityBM(frameLeftGray, frameRightGray);          %disparityBM   disparitySGM
    
 
     points3Dreg = reconstructScene(disparityMapReg, stereoParams);
@@ -131,22 +130,33 @@ hold(axes1,'on');
 
 % Create multiple lines using matrix input to plot
 YMatrix1;
-plot1  = errorbar(X1, YMatrix1(1,:), YMatrix1(2,:) ); hold on;
-plot2 = errorbar(X1, YMatrix1(4,:), YMatrix1(5,:) ); 
+plot1  = errorbar(X1, YMatrix1(1,:), YMatrix1(2,:),'Marker','diamond',...
+    'LineStyle','--',...
+    'LineWidth',2 ); hold on;
+plot2 = errorbar(X1, YMatrix1(4,:), YMatrix1(5,:),'Marker','diamond',...
+    'LineStyle','--',...
+    'LineWidth',2 ); 
+
+
+xFit = linspace(0,50, 50);
 coefficients = polyfit(X1, YMatrix1(1,:), 1);
-yFit = polyval(coefficients , X1);
-plot(X1, yFit, 'b-', 'LineWidth', 1); % Plot fitted line.
+yFit = polyval(coefficients , xFit);
+plot_l1 = plot(xFit, yFit, 'b-', 'LineWidth', 1); % Plot fitted line.
 
 coefficients = polyfit(X1, YMatrix1(4,:), 1);
-yFit = polyval(coefficients , X1);
-plot(X1, yFit, 'r-', 'LineWidth', 1); % Plot fitted line.
+yFit = polyval(coefficients , xFit);
+plot_l2 = plot(xFit, yFit, 'r-', 'LineWidth', 1); % Plot fitted line.
+
+set(plot_l1,'Color',[0 0 1]);
+set(plot_l2,...
+    'Color',[0.850980392156863 0.325490196078431 0.098039215686274]);
 
 %plot1 = plot(X1,YMatrix1,'Marker','square');
 set(plot1(1),'DisplayName','"Традиционная" стереопара');
 set(plot2(1),'DisplayName','Предлагаемая стереосистема');
 
 % Create ylabel
-ylabel('Ошибка оценки  поверхности, м');
+ylabel('Среднеквадратичная ошибка оценки  поверхности, м');
 
 % Create xlabel
 xlabel('Расстояние до поверхности, м');
@@ -154,22 +164,12 @@ xlabel('Расстояние до поверхности, м');
 % Uncomment the following line to preserve the X-limits of the axes
  xlim(axes1,[-0.000209902368405811 16.0517554642163]);
 % Uncomment the following line to preserve the Y-limits of the axes
- ylim(axes1,[-3.8322756199846e-05 0.35351683918712]);
+ ylim(axes1,[-3.8322756199846e-05 0.55351683918712]);
 box(axes1,'on');
 % Set the remaining axes properties
-set(axes1,'XGrid','on','YGrid','on');
+set(axes1,'FontSize',14,'XGrid','on','YGrid','on');
 % Create legend
 legend1 = legend(axes1,'show');
 set(legend1,...
     'Position',[0.172415836709068 0.839227796053986 0.262158950099176 0.0602310215285902]);
 end
-
-
-
-% maxDistance = 0.02;
-% referenceVector = [0, 0, 1];
-% maxAngularDistance = 0;
-% [model1,inlierIndices,outlierIndices, meanError] = pcfitplane(ptCloud,maxDistance,referenceVector,maxAngularDistance);
-% plane1 = select(ptCloud,inlierIndices);
-% remainPtCloud = select(ptCloud,outlierIndices);
-% meanError   % print mean square error in distance
