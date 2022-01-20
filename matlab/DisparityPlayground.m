@@ -1,7 +1,7 @@
 close all;
 global SHOW BasePath Scale;
 
-RECALCULATE = true;
+RECALCULATE = false;
 SHOW = false;
 BasePath = "D:\Work\Coding\Repos\RTC_Practice\fisheye_stereo\data\stereo_img\compar\plane";
 Scale = 10; 
@@ -132,7 +132,15 @@ hold(axes1,'on');
 % Create multiple lines using matrix input to plot
 YMatrix1;
 plot1  = errorbar(X1, YMatrix1(1,:), YMatrix1(2,:) ); hold on;
-plot2 = errorbar(X1, YMatrix1(4,:), YMatrix1(5,:) );
+plot2 = errorbar(X1, YMatrix1(4,:), YMatrix1(5,:) ); 
+coefficients = polyfit(X1, YMatrix1(1,:), 1);
+yFit = polyval(coefficients , X1);
+plot(X1, yFit, 'b-', 'LineWidth', 1); % Plot fitted line.
+
+coefficients = polyfit(X1, YMatrix1(4,:), 1);
+yFit = polyval(coefficients , X1);
+plot(X1, yFit, 'r-', 'LineWidth', 1); % Plot fitted line.
+
 %plot1 = plot(X1,YMatrix1,'Marker','square');
 set(plot1(1),'DisplayName','"Традиционная" стереопара');
 set(plot2(1),'DisplayName','Предлагаемая стереосистема');
