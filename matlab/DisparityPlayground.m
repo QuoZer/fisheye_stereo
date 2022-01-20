@@ -1,11 +1,11 @@
 close all;
+global SHOW BasePath Scale;
 
 RECALCULATE = true;
-global SHOW BasePath Scale;
 SHOW = false;
 BasePath = "D:\Work\Coding\Repos\RTC_Practice\fisheye_stereo\data\stereo_img\compar\plane";
 Scale = 10; 
-distances = [ 4 5 6 7.5 9 10 11 12 12.5 13 14 15]; % 1m:   //  0.3m: 1 2 4 5 6 7.5 10 // 0.05m: 1 2 3 4 5 6 8 10 12
+distances = [ 4 5 6 7.5 9 10 11 12 12.5 13 14 15 ]; % 1m: 4 5 6 7.5 9 10 11 12 12.5 13 14 15  //  0.3m: 1 2 4 5 6 7.5 10 // 0.05m: 1 2 3 4 5 6 8 10 12
 
 
 if (RECALCULATE)
@@ -63,6 +63,10 @@ function [MSE, D, M]  = computePlaneError(stereoParams, distance, type)
     points3Dreg = reconstructScene(disparityMapReg, stereoParams);
     points3Dreg = points3Dreg ./ 1000;
     ptCloud = pointCloud(points3Dreg, 'Color', frameLeftRect);
+    if (SHOW) 
+        figure('Name',type+' full_scene'+string(targetDistance))
+        pcshow(ptCloud);
+    end
     indicies = findPointsInROI(ptCloud, target_roi);
     ptCloud = select(ptCloud, indicies);
 
