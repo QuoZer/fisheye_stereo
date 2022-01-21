@@ -5,31 +5,35 @@ RECALCULATE = true;
 SHOW = false;
 BasePath = "D:\Work\Coding\Repos\RTC_Practice\fisheye_stereo\data\stereo_img\compar\plane";  %0.05m
 Scale = 10; 
-distances = [ 5 6 7.5 9 10 11 12 12.5 13 14 15 ]; % 0.5m: 4 5 6 7.5 9 10 11 12 12.5 13 14 15  //  0.3m: 1 2 4 5 6 7.5 10 // 0.05m: 1 2 3 4 5 6 8 10 12
+distances = [ 4 5 6 7.5 9 10 11 12 12.5 13 14 15 ]; % 0.5m: 4 5 6 7.5 9 10 11 12 12.5 13 14 15  //  0.3m: 1 2 4 5 6 7.5 10 // 0.05m: 1 2 3 4 5 6 8 10 12
 
 
 if (RECALCULATE)
     regData = [];
     reg_disp = [];    
+    reg_count = [];
     fyData = [];
     fy_disp = [];
-    means = [];
+    fy_count = [];
     
     for dst = distances
         %%%     FISHEYE        %%%
-        [fy_e, fy_disp, fy_mean] = computePlaneError(newFisheyeStereoParams, dst, "fy");
+        [fy_e, fy_disp, fy_mean, count] = computePlaneError(newFisheyeStereoParams, dst, "fy");
+        fy_count = [fy_count count]
         fyData = [fyData [fy_e; fy_disp; fy_mean]];
         %%%     REGULAR        %%%
-        [reg_e, reg_disp, reg_mean] = computePlaneError(newRegularStereoParams, dst, "reg");
+        [reg_e, reg_disp, reg_mean, count] = computePlaneError(newRegularStereoParams, dst, "reg");
+        reg_count = [reg_count count]
         regData = [regData [reg_e; reg_disp; reg_mean]];
         disp("Distance  ready")
     end
 end
 
+plot(distances, reg_count, distances, fy_count)
 createfigure(distances, [regData; fyData])
 
 
-function [MSE, D, M]  = computePlaneError(stereoParams, distance, type)
+function [MSE, D, M, Inds]  = computePlaneError(stereoParams, distance, type)
     global  BasePath;
     global SHOW;
     global Scale;
@@ -56,7 +60,7 @@ function [MSE, D, M]  = computePlaneError(stereoParams, distance, type)
     frameLeftGray  = rgb2gray(frameLeftRect);
     frameRightGray = rgb2gray(frameRightRect);
 
-    disparityMapReg = disparityBM(frameLeftGray, frameRightGray);          %disparityBM   disparitySGM
+    disparityMapReg = disparitySGM(frameLeftGray, frameRightGray);          %disparityBM   disparitySGM
    
 
     points3Dreg = reconstructScene(disparityMapReg, stereoParams);
@@ -68,7 +72,7 @@ function [MSE, D, M]  = computePlaneError(stereoParams, distance, type)
     end
     indicies = findPointsInROI(ptCloud, target_roi);
     ptCloud = select(ptCloud, indicies);
-
+    Inds = ptCloud.Count;
     [MSE, D] = findMSE(ptCloud,  ref_model);
 %     MSE = 0;
 %     D  = 0;
