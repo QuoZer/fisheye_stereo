@@ -1,0 +1,52 @@
+#pragma once
+#define _USE_MATH_DEFINES
+#include "opencv2/core.hpp"
+#include "opencv2/imgproc.hpp"
+#include <iostream>
+#include <vector>
+#include <numbers>
+#include <math.h>
+
+
+/* TODO: 
+* 
+*/
+
+class CameraModel
+{
+public:	///* Parameters *///
+	float xFov;							
+	float yFov;							
+	cv::Size oldSize;					
+	cv::Size newSize;					
+	int modelID;
+
+public:	///* Data *///
+	double errorsum;
+
+public:	///* Internal functions *///
+
+	/* Tools */
+	// converting corner coordinates to the center ones
+	void toCenter(cv::Point& cornerPixel, cv::Size imagesize)
+	{
+		cornerPixel.x = cornerPixel.x - imagesize.width / 2;
+		cornerPixel.y = -cornerPixel.y + imagesize.height / 2;
+	}
+
+	// converting center coordinates to the corner ones
+	void toCorner(cv::Point& centerPixel, cv::Size imagesize)
+	{
+		centerPixel.x = centerPixel.x + imagesize.width / 2;
+		centerPixel.y = -centerPixel.y + imagesize.height / 2;
+	}
+
+
+public:		///* Settings *///
+	CameraModel() {}
+	virtual void setIntrinsics(cv::Matx22d stretchMatrix, double scaleFactor) {}
+	/* Projection functions */
+	virtual cv::Point2d projectWorldToPixel(cv::Mat worldPoint) { return cv::Point2d(worldPoint); }		// idk it doesnt want to return null
+	virtual cv::Mat projectPixelToWorld(cv::Point pixel) { return cv::Mat(); }
+
+};

@@ -159,6 +159,7 @@ static bool readStringList(const string& filename, vector<string>& l)
     return true;
 }
 
+
 int main(int argc, char** argv)
 {
     cv::CommandLineParser parser(argc, argv,
@@ -173,7 +174,6 @@ int main(int argc, char** argv)
         return 0;
     }
     const string inputFilename = parser.get<string>(0);
-
     if (!parser.check())
     {
         parser.printErrors();
@@ -200,14 +200,15 @@ int main(int argc, char** argv)
     vector<Point> grid;                   // vectors of grid points
     vector<Point> gridDist;
     vector<Point> r_gridDist;
-
-    FisheyeDewarper dewarper;
-    dewarper.setIntrinsics( 350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9), cv::Vec2d(0, 0), cv::Matx22d(1, 0, 0, 1), 0.022 );
+    ScaramuzzaModel SM1;
+    SM1.setIntrinsics({ 350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9) }, cv::Vec2d(0, 0), cv::Matx22d(1, 0, 0, 1), 0.022);
+    FisheyeDewarper dewarper(&SM1);
     dewarper.setSize(origSize, newSize, 90);
     dewarper.setRpy(0, 0, 0);
-
-    FisheyeDewarper r_dewarper;
-    r_dewarper.setIntrinsics(350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9), cv::Vec2d(0, 0), cv::Matx22d(1, 0, 0, 1), 0.022);
+    
+    ScaramuzzaModel SM2;
+    SM2.setIntrinsics({ 350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9) }, cv::Vec2d(0, 0), cv::Matx22d(1, 0, 0, 1), 0.022);
+    FisheyeDewarper r_dewarper(&SM2);
     r_dewarper.setSize(origSize, newSize, 90);
     r_dewarper.setRpy(0, 0, 0);
 
@@ -220,8 +221,8 @@ int main(int argc, char** argv)
 
         if (recalcFlag){
                                                        
-            dewarper.fillMaps(SCARAMUZZA);                      // fill new maps with current parameters. 
-            r_dewarper.fillMaps(SCARAMUZZA);
+            dewarper.fillMaps();                      // fill new maps with current parameters. 
+            r_dewarper.fillMaps();
             cout << "Maps ready" << endl;
 
             recalcFlag = false;
@@ -229,8 +230,8 @@ int main(int argc, char** argv)
 
         Mat leftImageRemapped(newSize, CV_8UC3, Scalar(0, 0, 0));
         Mat rightImageRemapped(newSize, CV_8UC3, Scalar(0, 0, 0));
-        leftImageRemapped = dewarper.dewrapImage(left);
-        rightImageRemapped = r_dewarper.dewrapImage(right);
+        leftImageRemapped = dewarper.dewarpImage(left);
+        rightImageRemapped = r_dewarper.dewarpImage(right);
         gridDist = dewarper.getBorder();
         r_gridDist = r_dewarper.getBorder();
 
