@@ -38,9 +38,8 @@ cv::Mat PinholeModel::projectPixelToWorld(cv::Point pixel)
     return cameraCoords;
 }
 
-void PinholeModel::setIntrinsics(cv::Size oldsize, cv::Size newsize, float wideFov)
+void PinholeModel::setIntrinsics(cv::Size newsize, float wideFov)
 {
-    oldSize = oldsize;
     newSize = newsize;
     xFov = wideFov;
     yFov = wideFov * newSize.height / newSize.width;           // * 9/16

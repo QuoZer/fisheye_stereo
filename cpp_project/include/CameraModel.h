@@ -9,7 +9,7 @@
 
 
 /* TODO: 
-* 
+*  setResolution 
 */
 
 class CameraModel
@@ -20,12 +20,14 @@ public:	///* Parameters *///
 	cv::Size oldSize;					
 	cv::Size newSize;					
 	int modelID;
+	// TODO: some kind of position storage 
+	cv::Vec3d position;
+	cv::Vec4d rotation;
 
 public:	///* Data *///
 	double errorsum;
 
 public:	///* Internal functions *///
-
 	/* Tools */
 	// converting corner coordinates to the center ones
 	void toCenter(cv::Point& cornerPixel, cv::Size imagesize)
@@ -33,7 +35,6 @@ public:	///* Internal functions *///
 		cornerPixel.x = cornerPixel.x - imagesize.width / 2;
 		cornerPixel.y = -cornerPixel.y + imagesize.height / 2;
 	}
-
 	// converting center coordinates to the corner ones
 	void toCorner(cv::Point& centerPixel, cv::Size imagesize)
 	{
@@ -41,9 +42,17 @@ public:	///* Internal functions *///
 		centerPixel.y = -centerPixel.y + imagesize.height / 2;
 	}
 
-
 public:		///* Settings *///
 	CameraModel() {}
+	virtual void setCamParams(cv::Size origImageSize)
+	{
+		oldSize = origImageSize;    
+	}
+	void setExtrinsics(cv::Vec3d pos, cv::Vec4d rot)
+	{
+		position = pos;
+		rotation = rot;
+	}
 	virtual void setIntrinsics(cv::Matx22d stretchMatrix, double scaleFactor) {}
 	/* Projection functions */
 	virtual cv::Point2d projectWorldToPixel(cv::Mat worldPoint) { return cv::Point2d(worldPoint); }		// idk it doesnt want to return null

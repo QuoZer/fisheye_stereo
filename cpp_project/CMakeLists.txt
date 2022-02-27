@@ -14,6 +14,8 @@ include_directories( ${OpenCV_INCLUDE_DIRS}
 set(DEWARPER_SRCS
 	src/dewarper.cpp
 	src/FisheyeDewarper.cpp
+	src/SurroundSystem.cpp
+	src/StereoPair.cpp
 	src/models/Scaramuzza.cpp
 	src/models/Pinhole.cpp
 	src/models/Atan.cpp
@@ -22,6 +24,8 @@ set(DEWARPER_SRCS
 	include/CameraModel.h
 	include/FisheyeDewarper.hpp
 	include/models.h
+	include/SurroundSystem.hpp
+	include/StereoPair.hpp
 )
 
 add_executable( dewarper ${DEWARPER_SRCS})

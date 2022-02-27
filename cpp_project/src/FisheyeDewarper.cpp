@@ -14,7 +14,6 @@ void FisheyeDewarper::createMaps()
     map2 = cv::Mat(oldSize, CV_32FC1, float(0));
 }
 
-
 void FisheyeDewarper::setRpy(float yaw, float pitch, float roll)
 {
     this->yaw = yaw * PI / 180;
@@ -36,7 +35,6 @@ void FisheyeDewarper::setSize(cv::Size oldsize, cv::Size newsize, float wideFov)
 std::vector<cv::Point> FisheyeDewarper::getBorder() {
     return this->frameBorder;
 }
-
 
 cv::Mat FisheyeDewarper::rotatePoint(cv::Mat worldPoint)
 {
@@ -103,36 +101,6 @@ void FisheyeDewarper::fillMaps()
 
 
 }
-
-//
-//void FisheyeDewarper::fillMapsRevScaramuzza()
-//{
-//    for (int i = 0; i < oldSize.width; i++)
-//    {
-//        for (int j = 0; j < oldSize.height; j++)
-//        {
-//            cv::Point distPoint = reverseScaramuzza(cv::Point(i, j));
-//
-//            if (distPoint.x > newSize.width - 1 || distPoint.x < 0 ||
-//                distPoint.y > newSize.height - 1 || distPoint.y < 0)
-//            {
-//                continue;   // skips out of border points
-//            }
-//
-//            // save distorted edge of the frame 
-//            if (((j == 0 || j == oldSize.height - 1) && i % 100 == 0) ||
-//                ((i == 0 || i == oldSize.width - 1) && j % 100 == 0))
-//            {
-//                frameBorder.push_back(cv::Point(distPoint.y, distPoint.x));
-//            }
-//
-//            map1.at<float>(i, j) = distPoint.y;
-//            map2.at<float>(i, j) = distPoint.x;
-//        }
-//        if (i % 10 == 0) std::cout << "Collumn N" << i << std::endl;
-//    }
-//    std::cout << "Avg. error: " << errorsum / (1080 * 1080) << std::endl;       // HACK
-//}
 
 
 cv::Mat FisheyeDewarper::dewarpImage(cv::Mat inputImage)

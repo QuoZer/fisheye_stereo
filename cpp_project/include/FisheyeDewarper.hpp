@@ -7,12 +7,12 @@
 #include <math.h>
 #include "models.h"
 
-#define SCARAMUZZA		10
-#define ATAN			20
-#define REV_SCARAMUZZA	30
+//#define SCARAMUZZA		10
+//#define ATAN			20
+//#define REV_SCARAMUZZA	30
 
 /* TODO: -Constructor, 
-		 -Custom models
+		 -
 */
 
 class FisheyeDewarper

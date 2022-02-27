@@ -8,7 +8,11 @@
 #include <string>
 #include <time.h>
 #include <cstdarg>
+#include "SurroundSystem.cpp"
 #include "FisheyeDewarper.hpp"
+
+
+
 
 const bool DETECT_CHESS = false;
 const bool PUT_CIRCLES = false;
@@ -196,18 +200,41 @@ int main(int argc, char** argv)
 
     Size origSize(1080, 1080);       //imread(image_list[0], -1).size();
     Size newSize(1080, 1080);        // origSize * 1;            // determines the size of the output image
+    
+// Create the stereo system object
+    SurroundSystem SS; 
+// Create the first camera object and fill its params
+    ScaramuzzaModel SM1;
+    SM1.setIntrinsics({ 350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9) }, cv::Vec2d(0, 0), cv::Matx22d(1, 0, 0, 1), 0.022);
+    SM1.setExtrinsics(cv::Vec3d(0, 0, 0), cv::Vec4d(0, 0, 0, 1));
+    SM1.setCamParams(origSize);
+// Create the second camera object and fill its params
+    ScaramuzzaModel SM2;
+    SM2.setIntrinsics({ 350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9) }, cv::Vec2d(0, 0), cv::Matx22d(1, 0, 0, 1), 0.022);
+    SM2.setExtrinsics(cv::Vec3d(1.0, 0, 0), cv::Vec4d(0, 0, 0.7071068, 0.7071068)); // 90^o
+    SM2.setCamParams(origSize);
+// Add these cams to the stereosystem
+    SS.addNewCam(&SM1);
+    SS.addNewCam(&SM2);
+// Create a stereosystem out of the previously created cameras (and target resolution)
+    int SPindex = SS.createStereopair(0, 1, newSize, cv::Vec3d(0,0,0));
+    //front.setDirection()
+    SS.prepareLUTs(); 
+    
 
     vector<Point> grid;                   // vectors of grid points
     vector<Point> gridDist;
     vector<Point> r_gridDist;
     ScaramuzzaModel SM1;
     SM1.setIntrinsics({ 350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9) }, cv::Vec2d(0, 0), cv::Matx22d(1, 0, 0, 1), 0.022);
+    SM1.setExtrinsics(cv::Vec3d(0, 0, 0), cv::Vec4d(0,0,0,1));
     FisheyeDewarper dewarper(&SM1);
     dewarper.setSize(origSize, newSize, 90);
     dewarper.setRpy(0, 0, 0);
     
     ScaramuzzaModel SM2;
     SM2.setIntrinsics({ 350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9) }, cv::Vec2d(0, 0), cv::Matx22d(1, 0, 0, 1), 0.022);
+    SM2.setExtrinsics(cv::Vec3d(1.0, 0, 0), cv::Vec4d(0, 0, 0, 1));
     FisheyeDewarper r_dewarper(&SM2);
     r_dewarper.setSize(origSize, newSize, 90);
     r_dewarper.setRpy(0, 0, 0);
