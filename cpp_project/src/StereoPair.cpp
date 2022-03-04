@@ -15,6 +15,22 @@ void Stereopair::fillMaps()
 	rightDewarper->fillMaps();
 }
 
+void Stereopair::setStereoMethod(StereoMethod sm)
+{
+
+    switch (sm)
+    {
+    case BM:
+        matcher = cv::StereoBM::create();
+        break;
+    case SGBM:
+        matcher = cv::StereoSGBM::create();
+        break;
+    default:
+        break;
+    }
+}
+
 void Stereopair::setOptimalDirecton()
 {
 	cv::Vec4d normilized;
@@ -38,7 +54,23 @@ void Stereopair::setOptimalDirecton()
     double cosy_cosp = 1 - 2 * (normilized[1] * normilized[1] + normilized[2] * normilized[2]);
     double yaw = std::atan2(siny_cosp, cosy_cosp);
 
-    leftDewarper->setRpy(yaw, pitch, roll);
-    rightDewarper->setRpy();
+    leftDewarper->setRpy(  yaw, pitch, roll);   // FIXME:  wrong 
+    rightDewarper->setRpy(-yaw, pitch, roll);
 }
 
+// get rectified?
+int Stereopair::getRemapped(cv::Mat& left, cv::Mat& right, cv::Mat& leftRemapped, cv::Mat& rightRemapped)
+{
+    leftRemapped = leftDewarper->dewarpImage(left);
+    rightRemapped = rightDewarper->dewarpImage(right);
+}
+
+int Stereopair::getDisparity(cv::OutputArray& dist, cv::InputArray& leftImage, cv::InputArray& rightImage)
+{
+    // static ?? 
+    cv::Mat leftImageRemapped(leftCamera->newSize, CV_8UC3, cv::Scalar(0, 0, 0));
+    cv::Mat rightImageRemapped(rightCamera->newSize, CV_8UC3, cv::Scalar(0, 0, 0));
+    //
+    getRemapped(leftImage, rightImage, leftImageRemapped, rightImageRemapped)
+    matcher->compute(leftImage, rightImage, dist);
+}

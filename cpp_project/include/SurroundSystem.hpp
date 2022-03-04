@@ -14,12 +14,21 @@
 
 
 class SurroundSystem {
+public:
 	//*   Model constants   *//
-	const int SCARAMUZZA = -1;
-	const int PINHOLE = 00;
-	const int SCARAMUZZA = 10;
-	const int ATAN = 20;
-	const int MEI = 30;
+	enum CameraModels
+	{
+		PINHOLE,
+		ATAN,
+		SCARAMUZZA,
+		MEI,
+		KB
+	};
+	//const int SCARAMUZZA = -1;
+	//const int PINHOLE = 00;
+	//const int SCARAMUZZA = 10;
+	//const int ATAN = 20;
+	//const int MEI = 30;
 
 private: //* Containers *//
 	std::vector<FisheyeDewarper*> dewarpers; 
@@ -28,8 +37,9 @@ private: //* Containers *//
 
 public:
 	int addNewCam(CameraModel* readyModel);
-	
-	int createStereopair(int lCamIndex, int rCamIndex, cv::Size reconstructedRes, cv::Vec3d direction);
+
+	CameraModel SurroundSystem::getCameraModel(CameraModels);
+	int createStereopair(int lCamIndex, int rCamIndex, cv::Size reconstructedRes, cv::Vec3d direction, StereoMethod);
 
 	void prepareLUTs();
 

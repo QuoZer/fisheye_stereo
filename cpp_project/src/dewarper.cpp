@@ -204,7 +204,7 @@ int main(int argc, char** argv)
 // Create the stereo system object
     SurroundSystem SS; 
 // Create the first camera object and fill its params
-    ScaramuzzaModel SM1;
+    ScaramuzzaModel SM1; // = SS.getCameraModel(SurroundSystem::CameraModels::SCARAMUZZA);
     SM1.setIntrinsics({ 350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9) }, cv::Vec2d(0, 0), cv::Matx22d(1, 0, 0, 1), 0.022);
     SM1.setExtrinsics(cv::Vec3d(0, 0, 0), cv::Vec4d(0, 0, 0, 1));
     SM1.setCamParams(origSize);
@@ -216,8 +216,8 @@ int main(int argc, char** argv)
 // Add these cams to the stereosystem
     SS.addNewCam(&SM1);
     SS.addNewCam(&SM2);
-// Create a stereosystem out of the previously created cameras (and target resolution)
-    int SPindex = SS.createStereopair(0, 1, newSize, cv::Vec3d(0,0,0));
+// Create a stereosystem out of the previously created cameras (and target resolution). View direction set automatically 
+    int SPindex = SS.createStereopair(0, 1, newSize, cv::Vec3d(0,0,0), StereoMethod::SGBM);
     //front.setDirection()
     SS.prepareLUTs(); 
     

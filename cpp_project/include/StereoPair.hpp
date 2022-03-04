@@ -1,7 +1,15 @@
 #include "FisheyeDewarper.hpp"
 
+
+enum StereoMethod
+{
+	BM,
+	SGBM
+};
+
 class Stereopair
 {
+	cv::StereoMatcher* matcher;
 
 	FisheyeDewarper* leftDewarper;
 	FisheyeDewarper* rightDewarper;
@@ -18,8 +26,10 @@ public:
 
 	void fillMaps();
 	// 
+	int getRemapped(cv::Mat& left, cv::Mat& right, cv::Mat& leftRemapped, cv::Mat& rightRemapped);
 	int getDisparity(cv::OutputArray& dist, cv::InputArray& leftImage, cv::InputArray& rightImage);
 	int getDepth(cv::OutputArray& dist, cv::InputArray& leftImage, cv::InputArray& rightImage);
+	void setStereoMethod(StereoMethod sm);
 	// calculate and set the best roll,pitch,yaw values fir each camera in stereopir 
 	void setOptimalDirecton();
 	void setDirection();

@@ -9,14 +9,37 @@ int SurroundSystem::addNewCam(CameraModel* readyModel)
 	return cameras.size()-1;  // new camera index
 }
 
+CameraModel SurroundSystem::getCameraModel(CameraModels cm)
+{
+	// FIXME: antipattern
+	switch (cm)
+	{
+	case PINHOLE:
+		return PinholeModel();
+		break;
+	case ATAN:
+		return AtanModel();
+		break;
+	case SCARAMUZZA:
+		return ScaramuzzaModel();
+		break;
+	case MEI:
+		return MeiModel();
+		break;
+	case KB:
+		break;
+	default:
+		break;
+	}
+}
 
-int SurroundSystem::createStereopair(int lCamIndex, int rCamIndex, cv::Size reconstructedRes, cv::Vec3d direction)
+int SurroundSystem::createStereopair(int lCamIndex, int rCamIndex, cv::Size reconstructedRes, cv::Vec3d direction, StereoMethod sm)
 {
 	CameraModel *left = cameras[lCamIndex];
 	CameraModel *right = cameras[rCamIndex];
 	FisheyeDewarper *leftDewarper = dewarpers[lCamIndex];
 	FisheyeDewarper *rightDewarper = dewarpers[rCamIndex];
-	// cv::INTER_CUBIC ?? 
+	// TODO: interpolation setter ?? 
 	leftDewarper->setSize(left->oldSize, reconstructedRes, 90);  // HACK: 90deg is an assumption
 	leftDewarper->setRpy(0, 0, 0);									// TODO: calc angles from position
 	rightDewarper->setSize(right->oldSize, reconstructedRes, 90);
@@ -24,7 +47,10 @@ int SurroundSystem::createStereopair(int lCamIndex, int rCamIndex, cv::Size reco
 
 	Stereopair* SP = new Stereopair(left, leftDewarper, right, rightDewarper);
 	SP->setOptimalDirecton();
+	SP->setStereoMethod(sm);
 	stereopairs.push_back(SP);
+
+
 
 	return stereopairs.size() - 1;
 }

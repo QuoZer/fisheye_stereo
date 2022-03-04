@@ -45,7 +45,7 @@ cv::Mat ScaramuzzaModel::projectPixelToWorld(cv::Point pixel)
     cameraCoords.at<float>(0) = lambda * undistPixel[0];
     cameraCoords.at<float>(1) = lambda * undistPixel[1];
     cameraCoords.at<float>(2) = lambda * (scara_polynom[0] + scara_polynom[1] * pow(rho, 2) + scara_polynom[2] * pow(rho, 3) + scara_polynom[3] * pow(rho, 4));
-
+    //cameraCoords *= lambda;
     return cameraCoords;
 }
 
