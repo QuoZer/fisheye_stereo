@@ -1,5 +1,10 @@
 #include "models.h"
 
+MeiModel::MeiModel()
+{
+    
+}
+
 MeiModel::MeiModel(double k2, double k3, double k4, double k5, double mu, double mv)
 {
     setIntrinsics(k2, k3, k4, k5, mu, mv);

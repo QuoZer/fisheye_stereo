@@ -55,7 +55,9 @@ private:
 public:
 	MeiModel();
 	MeiModel(double k2, double k3, double k4, double k5, double mu, double mv);
+
 	void setIntrinsics(double k2, double k3, double k4, double k5, double mu, double mv);
+
 	cv::Point2d projectWorldToPixel(cv::Mat worldPoint);
 	cv::Mat projectPixelToWorld(cv::Point pixel);
 	void MeiModel::backprojectSymmetric(cv::Point pxl, double& theta, double& phi);

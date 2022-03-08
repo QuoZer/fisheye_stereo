@@ -8,7 +8,7 @@
 #include <string>
 #include <time.h>
 #include <cstdarg>
-#include "SurroundSystem.cpp"
+#include "SurroundSystem.hpp"
 
 
 const bool DETECT_CHESS = false;

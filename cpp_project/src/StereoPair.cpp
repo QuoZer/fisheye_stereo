@@ -78,3 +78,12 @@ int Stereopair::getDisparity(cv::OutputArray& dist, cv::InputArray& leftImage, c
 
     return 0;
 }
+
+int Stereopair::getDepth(cv::OutputArray& dist, cv::InputArray& leftImage, cv::InputArray& rightImage)
+{
+    getDisparity(dist, leftImage, rightImage);
+
+    // TODO: turn disparity into depth
+
+    return 0;
+}
