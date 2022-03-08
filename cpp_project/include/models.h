@@ -4,7 +4,7 @@
 
 class PinholeModel : public CameraModel
 {
-	/* Parameters are as in parent */
+	/* Parameters as in parent */
 
 public:	///* Projection functions *///
 	PinholeModel();
@@ -38,7 +38,7 @@ private:	///* Intrinsics *///
 	cv::Matx22d stretchMatrix;			// Stretch matrix
 	double lambda;						// Scale factor 
 
-private:	///* Projection functions *///
+public:	///* Projection functions *///
 	cv::Point2d projectWorldToPixel(cv::Mat worldPoint);
 	//cv::Mat projectPixelToWorld(cv::Point pixel) {};
 
@@ -49,5 +49,14 @@ public:
 
 class MeiModel : public CameraModel
 {
+private:
+	double k2, k3, k4, k5, mu, mv;
 
+public:
+	MeiModel();
+	MeiModel(double k2, double k3, double k4, double k5, double mu, double mv);
+	void setIntrinsics(double k2, double k3, double k4, double k5, double mu, double mv);
+	cv::Point2d projectWorldToPixel(cv::Mat worldPoint);
+	cv::Mat projectPixelToWorld(cv::Point pixel);
+	void MeiModel::backprojectSymmetric(cv::Point pxl, double& theta, double& phi);
 };

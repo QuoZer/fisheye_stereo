@@ -1,3 +1,4 @@
+#pragma once
 #include "FisheyeDewarper.hpp"
 #include "Stereopair.hpp"
 
@@ -24,6 +25,15 @@ public:
 		MEI,
 		KB
 	};
+
+	enum ImageType
+	{
+		RAW,
+		RECTIFIED,
+		DISPARITY,
+		DEPTH
+	};
+
 	//const int SCARAMUZZA = -1;
 	//const int PINHOLE = 00;
 	//const int SCARAMUZZA = 10;
@@ -43,5 +53,6 @@ public:
 
 	void prepareLUTs();
 
+	void getImage(int stereopairIndex, ImageType IT, cv::Mat& l, cv::Mat& r, cv::Mat& dst);
 
 };

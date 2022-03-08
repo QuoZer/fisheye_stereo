@@ -16,16 +16,12 @@ CameraModel SurroundSystem::getCameraModel(CameraModels cm)
 	{
 	case PINHOLE:
 		return PinholeModel();
-		break;
 	case ATAN:
 		return AtanModel();
-		break;
 	case SCARAMUZZA:
 		return ScaramuzzaModel();
-		break;
 	case MEI:
 		return MeiModel();
-		break;
 	case KB:
 		break;
 	default:
@@ -62,4 +58,30 @@ void SurroundSystem::prepareLUTs()
 	{
 		SP->fillMaps();
 	}
+}
+
+// TODO: delete r and l - use constant image pointers instead?
+void SurroundSystem::getImage(int stereopairIndex, ImageType IT, cv::Mat& l, cv::Mat& r, cv::Mat& dst)
+{
+	cv::Mat leftImageRemapped(l.size(), CV_8UC3, cv::Scalar(0, 0, 0));
+	cv::Mat rightImageRemapped(r.size(), CV_8UC3, cv::Scalar(0, 0, 0));	// TODO: rework 'size' system
+	switch (IT)
+	{
+	case SurroundSystem::RAW:		// why the hell would i need that?
+		break;
+	case SurroundSystem::RECTIFIED:
+		stereopairs[stereopairIndex]->getRemapped(l, r, leftImageRemapped, rightImageRemapped) ;
+		cv::hconcat(leftImageRemapped, rightImageRemapped, dst);
+		return;
+	case SurroundSystem::DISPARITY:
+		stereopairs[stereopairIndex]->getDisparity(dst, l, r);
+		return;
+	case SurroundSystem::DEPTH:
+		stereopairs[stereopairIndex]->getDepth(dst, l, r);
+		return;
+	default:
+		break;
+	}
+
+	
 }

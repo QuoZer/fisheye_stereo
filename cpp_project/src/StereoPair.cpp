@@ -63,6 +63,8 @@ int Stereopair::getRemapped(cv::Mat& left, cv::Mat& right, cv::Mat& leftRemapped
 {
     leftRemapped = leftDewarper->dewarpImage(left);
     rightRemapped = rightDewarper->dewarpImage(right);
+
+    return 0;
 }
 
 int Stereopair::getDisparity(cv::OutputArray& dist, cv::InputArray& leftImage, cv::InputArray& rightImage)
@@ -71,6 +73,8 @@ int Stereopair::getDisparity(cv::OutputArray& dist, cv::InputArray& leftImage, c
     cv::Mat leftImageRemapped(leftCamera->newSize, CV_8UC3, cv::Scalar(0, 0, 0));
     cv::Mat rightImageRemapped(rightCamera->newSize, CV_8UC3, cv::Scalar(0, 0, 0));
     //
-    getRemapped(leftImage, rightImage, leftImageRemapped, rightImageRemapped)
-    matcher->compute(leftImage, rightImage, dist);
+    getRemapped(leftImage.getMat(), rightImage.getMat(), leftImageRemapped, rightImageRemapped);
+    matcher->compute(leftImage.getMat(), rightImage.getMat(), dist);
+
+    return 0;
 }

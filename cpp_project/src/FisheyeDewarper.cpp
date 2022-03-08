@@ -28,7 +28,7 @@ void FisheyeDewarper::setSize(cv::Size oldsize, cv::Size newsize, float wideFov)
     this->oldSize = oldsize;
     this->newSize = newsize;
     //std::cout << "Pinhole parameters set" << pinhole.errorsum << std::endl;
-    pinhole->setIntrinsics(oldSize, newSize, wideFov);
+    pinhole->setIntrinsics( newSize, wideFov);
     //createMaps();
 }
 

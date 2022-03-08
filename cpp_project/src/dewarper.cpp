@@ -9,9 +9,6 @@
 #include <time.h>
 #include <cstdarg>
 #include "SurroundSystem.cpp"
-#include "FisheyeDewarper.hpp"
-
-
 
 
 const bool DETECT_CHESS = false;
@@ -225,19 +222,19 @@ int main(int argc, char** argv)
     vector<Point> grid;                   // vectors of grid points
     vector<Point> gridDist;
     vector<Point> r_gridDist;
-    ScaramuzzaModel SM1;
-    SM1.setIntrinsics({ 350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9) }, cv::Vec2d(0, 0), cv::Matx22d(1, 0, 0, 1), 0.022);
-    SM1.setExtrinsics(cv::Vec3d(0, 0, 0), cv::Vec4d(0,0,0,1));
-    FisheyeDewarper dewarper(&SM1);
-    dewarper.setSize(origSize, newSize, 90);
-    dewarper.setRpy(0, 0, 0);
-    
-    ScaramuzzaModel SM2;
-    SM2.setIntrinsics({ 350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9) }, cv::Vec2d(0, 0), cv::Matx22d(1, 0, 0, 1), 0.022);
-    SM2.setExtrinsics(cv::Vec3d(1.0, 0, 0), cv::Vec4d(0, 0, 0, 1));
-    FisheyeDewarper r_dewarper(&SM2);
-    r_dewarper.setSize(origSize, newSize, 90);
-    r_dewarper.setRpy(0, 0, 0);
+    //ScaramuzzaModel SM1;
+    //SM1.setIntrinsics({ 350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9) }, cv::Vec2d(0, 0), cv::Matx22d(1, 0, 0, 1), 0.022);
+    //SM1.setExtrinsics(cv::Vec3d(0, 0, 0), cv::Vec4d(0,0,0,1));
+    //FisheyeDewarper dewarper(&SM1);
+    //dewarper.setSize(origSize, newSize, 90);
+    //dewarper.setRpy(0, 0, 0);
+    //
+    //ScaramuzzaModel SM2;
+    //SM2.setIntrinsics({ 350.8434, -0.0015, 2.1981 * pow(10, -6), -3.154 * pow(10, -9) }, cv::Vec2d(0, 0), cv::Matx22d(1, 0, 0, 1), 0.022);
+    //SM2.setExtrinsics(cv::Vec3d(1.0, 0, 0), cv::Vec4d(0, 0, 0, 1));
+    //FisheyeDewarper r_dewarper(&SM2);
+    //r_dewarper.setSize(origSize, newSize, 90);
+    //r_dewarper.setRpy(0, 0, 0);
 
 
     while(true)         //  iterate through images       
@@ -248,19 +245,17 @@ int main(int argc, char** argv)
 
         if (recalcFlag){
                                                        
-            dewarper.fillMaps();                      // fill new maps with current parameters. 
-            r_dewarper.fillMaps();
+            //dewarper.fillMaps();                      // fill new maps with current parameters. 
+            //r_dewarper.fillMaps();
             cout << "Maps ready" << endl;
 
             recalcFlag = false;
         }
 
-        Mat leftImageRemapped(newSize, CV_8UC3, Scalar(0, 0, 0));
-        Mat rightImageRemapped(newSize, CV_8UC3, Scalar(0, 0, 0));
-        leftImageRemapped = dewarper.dewarpImage(left);
-        rightImageRemapped = r_dewarper.dewarpImage(right);
-        gridDist = dewarper.getBorder();
-        r_gridDist = r_dewarper.getBorder();
+        //Mat leftImageRemapped(newSize, CV_8UC3, Scalar(0, 0, 0));
+        //Mat rightImageRemapped(newSize, CV_8UC3, Scalar(0, 0, 0));
+        Mat combinedRemap(Size(newSize.width*2, newSize.height), CV_8UC3, Scalar(0, 0, 0));
+        SS.getImage(0, SurroundSystem::RECTIFIED, left, right, combinedRemap);
 
         bool textPut = true;
         // draw grid
@@ -288,10 +283,10 @@ int main(int argc, char** argv)
         // Converting images to grayscale
         //cv::cvtColor(leftImageRemapped, leftImageRemapped, cv::COLOR_BGR2GRAY);
         //cv::cvtColor(rightImageRemapped, rightImageRemapped, cv::COLOR_BGR2GRAY);
-        ShowManyImages("Images", 4, right, left,leftImageRemapped, rightImageRemapped  );
-        imwrite("rightImageRemapped.png", rightImageRemapped);
+        //ShowManyImages("Images", 4, right, left,leftImageRemapped, rightImageRemapped  );
+        //imwrite("rightImageRemapped.png", rightImageRemapped);
         // Displaying the disparity map
-        //cv::imshow("disparity", leftImageRemapped);
+        cv::imshow("disparity", combinedRemap);
         
 
         char key = (char)waitKey(0);
