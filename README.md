@@ -1,4 +1,7 @@
-# Building:
+# A workin progress repository for the orthogonal fisheye stereovision system.
+
+
+## Building:
 
 - Create `build` directory inside target project folder
 - `cd build`
