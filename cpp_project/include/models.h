@@ -40,10 +40,10 @@ private:	///* Intrinsics *///
 
 public:	///* Projection functions *///
 	cv::Point2d projectWorldToPixel(cv::Mat worldPoint);
-	//cv::Mat projectPixelToWorld(cv::Point pixel) {};
-
+	cv::Mat projectPixelToWorld(cv::Point pixel) { return cv::Mat(oldSize, CV_8UC3, cv::Scalar(0, 0, 0)); }
+	
 public:
-	//void setIntrinsics(cv::Vec2d centerOffset, cv::Matx22d stretchMatrix, double scaleFactor);
+	void setIntrinsics(cv::Vec2d centerOffset, cv::Matx22d stretchMatrix, double scaleFactor) { return; };
 
 };
 

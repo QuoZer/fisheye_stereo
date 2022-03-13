@@ -42,7 +42,7 @@ void PinholeModel::setIntrinsics(cv::Size newsize, float wideFov)
 {
     newSize = newsize;
     xFov = wideFov;
-    yFov = wideFov * newSize.height / newSize.width;           // * 9/16
+    yFov = wideFov * newSize.height / newSize.width;           // * 9/16 - vertical fov
 }
 
 PinholeModel::PinholeModel()

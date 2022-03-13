@@ -196,7 +196,7 @@ int main(int argc, char** argv)
     bool recalcFlag = true;
 
     Size origSize(1080, 1080);       //imread(image_list[0], -1).size();
-    Size newSize(1080, 1080);        // origSize * 1;            // determines the size of the output image
+    Size newSize(540, 540);        // origSize * 1;            // determines the size of the output image
     
 // Create the stereo system object
     SurroundSystem SS; 
@@ -211,8 +211,8 @@ int main(int argc, char** argv)
     SM2.setExtrinsics(cv::Vec3d(1.0, 0, 0), cv::Vec4d(0, 0, 0.7071068, 0.7071068)); // 90^o
     SM2.setCamParams(origSize);
 // Add these cams to the stereosystem
-    SS.addNewCam(&SM1);
-    SS.addNewCam(&SM2);
+    SS.addNewCam(SM1);
+    SS.addNewCam(SM2);
 // Create a stereosystem out of the previously created cameras (and target resolution). View direction set automatically 
     int SPindex = SS.createStereopair(0, 1, newSize, cv::Vec3d(0,0,0), StereoMethod::SGBM);
     //front.setDirection()
@@ -257,28 +257,28 @@ int main(int argc, char** argv)
         Mat combinedRemap(Size(newSize.width*2, newSize.height), CV_8UC3, Scalar(0, 0, 0));
         SS.getImage(0, SurroundSystem::RECTIFIED, left, right, combinedRemap);
 
-        bool textPut = true;
-        // draw grid
-        for each (Point center in gridDist)
-        {
-            if (!textPut) {
-                Point textOrigin = center - Point(20,20);
-                textPut = true;
-            }
-            circle(left, center, 4, Scalar(115, 25, 10), 3);
-        }
-        for each (Point center in r_gridDist)
-        {
-            if (!textPut) {
-                Point textOrigin = center - Point(20, 20);
-                textPut = true;
-            }
-            circle(right, center, 4, Scalar(115, 25, 10), 3);
-        }
+        //bool textPut = true;
+        //// draw grid
+        //for each (Point center in gridDist)
+        //{
+        //    if (!textPut) {
+        //        Point textOrigin = center - Point(20,20);
+        //        textPut = true;
+        //    }
+        //    circle(left, center, 4, Scalar(115, 25, 10), 3);
+        //}
+        //for each (Point center in r_gridDist)
+        //{
+        //    if (!textPut) {
+        //        Point textOrigin = center - Point(20, 20);
+        //        textPut = true;
+        //    }
+        //    circle(right, center, 4, Scalar(115, 25, 10), 3);
+        //}
 
-        std::vector<cv::Point> hull;
-        convexHull(gridDist, hull);
-        cout << "Contour area is" << contourArea(hull) << std::endl;
+        //std::vector<cv::Point> hull;
+        //convexHull(gridDist, hull);
+        //cout << "Contour area is" << contourArea(hull) << std::endl;
 
         // Converting images to grayscale
         //cv::cvtColor(leftImageRemapped, leftImageRemapped, cv::COLOR_BGR2GRAY);

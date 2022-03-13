@@ -41,14 +41,14 @@ public:
 	//const int MEI = 30;
 
 private: //* Containers *//
-	std::vector<FisheyeDewarper*> dewarpers; 
-	std::vector<CameraModel*> cameras;		// replace with a dictionary?
-	std::vector<Stereopair*> stereopairs;
+	std::vector<std::shared_ptr<FisheyeDewarper>> dewarpers; 
+	std::vector<std::shared_ptr<CameraModel>> cameras;		// replace with a dictionary?
+	std::vector<std::shared_ptr<Stereopair>> stereopairs;
 
 public:
-	int addNewCam(CameraModel* readyModel);
+	int addNewCam(CameraModel& readyModel);
 
-	CameraModel SurroundSystem::getCameraModel(CameraModels);
+	//CameraModel SurroundSystem::getCameraModel(CameraModels);
 	int createStereopair(int lCamIndex, int rCamIndex, cv::Size reconstructedRes, cv::Vec3d direction, StereoMethod);
 
 	void prepareLUTs();

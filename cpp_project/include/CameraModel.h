@@ -43,7 +43,7 @@ public:	///* Internal functions *///
 	}
 
 public:		///* Settings *///
-	CameraModel() {}
+	//CameraModel() {}
 	virtual void setCamParams(cv::Size origImageSize)
 	{
 		oldSize = origImageSize;    
@@ -53,18 +53,18 @@ public:		///* Settings *///
 		position = pos;
 		rotation = rot;
 	}
-	virtual void setIntrinsics(cv::Matx22d stretchMatrix, double scaleFactor) {}
+	void setIntrinsics(cv::Matx22d stretchMatrix, double scaleFactor);
 	/* Projection functions */
 
 	/*
 	\brief Takes a 3D point in camera coordinates and projects it into fisheye image coordinates
 	
 	*/
-	virtual cv::Point2d projectWorldToPixel(cv::Mat worldPoint) { return cv::Point2d(worldPoint); }		// idk it doesnt want to return null
+	virtual cv::Point2d projectWorldToPixel(cv::Mat worldPoint) = NULL; 		// idk it doesnt want to return null
 	/*
 	\brief Takes a point in image (central coordinates) and projects it into camera coordinates
 
 	*/
-	virtual cv::Mat projectPixelToWorld(cv::Point pixel) { return cv::Mat(); }
+	virtual cv::Mat projectPixelToWorld(cv::Point pixel) = NULL;
 
 };

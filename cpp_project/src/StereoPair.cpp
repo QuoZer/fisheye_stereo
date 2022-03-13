@@ -1,12 +1,31 @@
 #include "..\include\StereoPair.hpp"
 
-Stereopair::Stereopair(CameraModel* lCam, FisheyeDewarper* lDWarp, CameraModel* rCam, FisheyeDewarper* rDWarp)
+Stereopair::Stereopair(std::shared_ptr<CameraModel> lCam, std::shared_ptr<FisheyeDewarper> lDWarp, 
+                       std::shared_ptr<CameraModel> rCam, std::shared_ptr<FisheyeDewarper> rDWarp,
+                       cv::Size outSize)
 {
 	leftCamera = lCam;
 	rightCamera = rCam;
 
 	leftDewarper = lDWarp;
 	rightDewarper = rDWarp;
+
+    outputSize = outSize;
+}
+
+Stereopair::Stereopair(std::shared_ptr<CameraModel> lCam, std::shared_ptr<FisheyeDewarper> lDWarp,
+                       std::shared_ptr<CameraModel> rCam, std::shared_ptr<FisheyeDewarper> rDWarp,
+                       cv::Size outSize, StereoMethod sm)
+{
+    leftCamera = lCam;
+    rightCamera = rCam;
+
+    leftDewarper = lDWarp;
+    rightDewarper = rDWarp;
+
+    outputSize = outSize;
+
+    setStereoMethod(sm);
 }
 
 void Stereopair::fillMaps()

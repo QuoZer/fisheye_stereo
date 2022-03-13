@@ -20,7 +20,7 @@
 class FisheyeDewarper
 {
 private:	///* Parameters *///
-	const double PI = M_PI; 
+	const double PI = 3.141592653589; // M_PI;
 	float xFov;							// output image fov
 	float yFov;							// or 16:9 equivalent
 	cv::Size oldSize;					// input image size
@@ -30,8 +30,8 @@ private:	///* Parameters *///
 	float pitch;
 	float roll;
 	/* A camera model to be used for dewarping (and setting intrinsics) */
-	CameraModel* cameraModel;
-	PinholeModel* pinhole;
+	std::shared_ptr<CameraModel> cameraModel;
+	std::shared_ptr<PinholeModel> pinhole;
 
 private:	///* Data *///
 	double errorsum;
@@ -58,7 +58,8 @@ private:	///* Internal functions *///
 	void setFovWide(float wFov);
 
 public:		///* Settings *///
-	FisheyeDewarper(CameraModel* model);
+	FisheyeDewarper();
+	FisheyeDewarper(std::shared_ptr<CameraModel> model);
 	void setSize(cv::Size oldsize, cv::Size newsize, float wideFov);
 	void setRpy(float yaw, float pitch, float roll);
 

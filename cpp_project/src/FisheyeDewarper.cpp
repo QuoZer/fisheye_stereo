@@ -1,10 +1,26 @@
 #include "FisheyeDewarper.hpp"
 
+FisheyeDewarper::FisheyeDewarper()
+{
+    oldSize = cv::Size(0, 0);
+    newSize = cv::Size(0, 0);
+    roll = 0;
+    pitch = 0;
+    yaw = 0;
+    errorsum = 0;
+    xFov = 90.0;
+    yFov = 90.0; // idk
+    cameraModel = nullptr;
+    pinhole = nullptr;
+
+}
+
 // https://stackoverflow.com/questions/30069384/provides-no-initializer-for-reference-member
-FisheyeDewarper::FisheyeDewarper(CameraModel* model)  
+FisheyeDewarper::FisheyeDewarper(std::shared_ptr<CameraModel> model) : FisheyeDewarper()
 {
     cameraModel = model;
-    pinhole = new PinholeModel();
+    pinhole = std::shared_ptr<PinholeModel>(new PinholeModel());
+    oldSize = model->oldSize;
 }
 
 

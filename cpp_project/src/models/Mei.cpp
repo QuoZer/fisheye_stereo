@@ -2,7 +2,12 @@
 
 MeiModel::MeiModel()
 {
-    
+    k2 = 0;
+    k3 = 0;
+    k4 = 0;
+    k5 = 0;
+    mu = 0;
+    mv = 0;
 }
 
 MeiModel::MeiModel(double k2, double k3, double k4, double k5, double mu, double mv)

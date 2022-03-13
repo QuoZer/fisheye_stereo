@@ -12,18 +12,23 @@ class Stereopair
 {
 	cv::StereoMatcher* matcher;
 
-	FisheyeDewarper* leftDewarper;
-	FisheyeDewarper* rightDewarper;
+	std::shared_ptr<FisheyeDewarper> leftDewarper;
+	std::shared_ptr<FisheyeDewarper> rightDewarper;
 
-	CameraModel* leftCamera;
-	CameraModel* rightCamera; // replace with positions? 
+	std::shared_ptr<CameraModel> leftCamera;
+	std::shared_ptr<CameraModel> rightCamera; // replace with positions? 
+public:
+	cv::Size outputSize;
 
 private:
 	// get the transaltion and rotation from cam2 to cam1
 	void calcExtrinsics(cv::OutputArray mtx, cv::InputArray poseCam1, cv::InputArray poseCam2);
 
 public:
-	Stereopair(CameraModel*  lCam, FisheyeDewarper*  lDWarp, CameraModel* rCam, FisheyeDewarper* rDWarp);
+	Stereopair(std::shared_ptr<CameraModel> lCam, std::shared_ptr<FisheyeDewarper> lDWarp,
+		std::shared_ptr<CameraModel> rCam, std::shared_ptr<FisheyeDewarper> rDWarp, cv::Size outSize);
+	Stereopair(std::shared_ptr<CameraModel> lCam, std::shared_ptr<FisheyeDewarper> lDWarp,
+		std::shared_ptr<CameraModel> rCam, std::shared_ptr<FisheyeDewarper> rDWarp, cv::Size outSize, StereoMethod sm);
 
 	void fillMaps();
 	// 
