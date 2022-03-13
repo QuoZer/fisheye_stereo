@@ -2,10 +2,10 @@ close all;
 global SHOW BasePath Scale;
 
 RECALCULATE = true;
-SHOW = false;
+SHOW = true;
 BasePath = "D:\Work\Coding\Repos\RTC_Practice\fisheye_stereo\data\stereo_img\compar\plane";  %0.05m
 Scale = 10; 
-distances = [ 4 5 6 7.5 9 10 11 12 12.5 13 14 15 ]; % 0.5m: 4 5 6 7.5 9 10 11 12 12.5 13 14 15  //  0.3m: 1 2 4 5 6 7.5 10 // 0.05m: 1 2 3 4 5 6 8 10 12
+distances = [ 14]; % 0.5m: 4 5 6 7.5 9 10 11 12 12.5 13 14 15  //  0.3m: 1 2 4 5 6 7.5 10 // 0.05m: 1 2 3 4 5 6 8 10 12
 
 
 if (RECALCULATE)
