@@ -1,0 +1,15 @@
+[submodule "fy_lib_source"]
+	path = fy_lib_source
+	url = https://github.com/QuoZer/fy_lib_source.git
+[submodule "papers"]
+	path = papers
+	url = https://github.com/QuoZer/fy_papers.git
+[submodule "unity_plugin"]
+	path = unity_plugin
+	url = https://github.com/QuoZer/fy_plugin_source.git
+[submodule "data"]
+	path = data
+	url = https://github.com/QuoZer/fy_dataset.git
+[submodule "unity_project"]
+	path = unity_project
+	url = https://github.com/QuoZer/fy_unity_project.git
