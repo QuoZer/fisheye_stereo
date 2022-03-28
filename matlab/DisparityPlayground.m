@@ -1,52 +1,75 @@
 close all;
-global SHOW BasePath Scale;
+global SHOW BasePath Scale Model Models;
 
-RECALCULATE = true;
-SHOW = true;
-BasePath = "D:\Work\Coding\Repos\RTC_Practice\fisheye_stereo\data\stereo_img\compar\plane";  %0.05m
+RECALCULATE = false;
+SHOW = false;
+Model = "MEI";
+BasePath = "D:\Work\Coding\Repos\fisheye_stereo\data\All_Compar0.1m\"; %+ Model + "\";  %0.1m\
 Scale = 10; 
-distances = [ 14]; % 0.5m: 4 5 6 7.5 9 10 11 12 12.5 13 14 15  //  0.3m: 1 2 4 5 6 7.5 10 // 0.05m: 1 2 3 4 5 6 8 10 12
-
+Models =["REG" "ATAN" "MEI" "SCARA" "KB"]
+distances = [1 2 3 4 5 6 7 8]; % 0.5m: 4 5 6 7.5 9 10 11 12 12.5 13 14 15  //  0.3m: 1 2 4 5 6 7.5 10 // 0.05m: 1 2 3 4 5 6 8 10 12
+% MEI0.1: 1 2 3 4 5 6 7 8
 
 if (RECALCULATE)
     regData = [];
     reg_disp = [];    
     reg_count = [];
-    fyData = [];
+    fyData = []; %zeros(distances.size(), 
     fy_disp = [];
     fy_count = [];
+    GIGADATA = []
     
-    for dst = distances
-        %%%     FISHEYE        %%%
-        [fy_e, fy_disp, fy_mean, count] = computePlaneError(newFisheyeStereoParams, dst, "fy");
-        fy_count = [fy_count count]
-        fyData = [fyData [fy_e; fy_disp; fy_mean]];
-        %%%     REGULAR        %%%
-        [reg_e, reg_disp, reg_mean, count] = computePlaneError(newRegularStereoParams, dst, "reg");
-        reg_count = [reg_count count]
-        regData = [regData [reg_e; reg_disp; reg_mean]];
-        disp("Distance  ready")
+
+    for cur_model = Models
+        fyData = [];
+        for dst = distances
+            %%%     FISHEYE        %%%
+            [fy_e, fy_disp, fy_mean, count] = computePlaneError(stereoParams01m, dst, cur_model);
+            fy_count = [fy_count count];
+            fyData = [fyData ; fy_e];
+            %%%     REGULAR        %%%
+%             [reg_e, reg_disp, reg_mean, count] = computePlaneError(stereoParams01m, dst, "REG");
+%             reg_count = [reg_count count]
+%             regData = [regData [reg_e; reg_disp; -reg_mean]];
+            disp("Distance  ready")
+        end
+        GIGADATA = [GIGADATA fyData] 
     end
+
 end
 
-plot(distances, reg_count, distances, fy_count)
-createfigure(distances, [regData; fyData])
+figure;
+title("Models");
+xlabel('Distance, m');
+ylabel('MSE, m')
+plot(distances, GIGADATA, 'DisplayName',cur_model)
+hold on
+legend;
+% figure
+% plot(distances, [regData(1,:); fyData(1,:)]);
+% title(Model);
+% xlabel('Distance, m');
+% ylabel('MSE, m')
+
+% plot(distances, reg_count, distances, fy_count)
+% createfigure(distances, [regData; fyData])
 
 
 function [MSE, D, M, Inds]  = computePlaneError(stereoParams, distance, type)
     global  BasePath;
     global SHOW;
     global Scale;
-    base_path = BasePath + string(distance) + "m\";  % compar0.3m
+    global Model;
+    %base_path = BasePath + string(distance) + "m\";  % compar0.3m
 
-    targetDistance = distance;
+    targetDistance = -distance;
     target_roi = [-0.4 0.6 -0.6 0.46 targetDistance/Scale-0.1 targetDistance/Scale+0.1];
 
-    targetParamsVector = [0, 0, 1, -targetDistance/Scale];   % normal + distance
+    targetParamsVector = [0, 0, 1, targetDistance/Scale];   % normal + distance
     ref_model = planeModel(targetParamsVector);
 
-    imgRight = base_path + type + "_r_shot.jpg";
-    imgLeft = base_path + type + "_l_shot.jpg";
+    imgRight = BasePath + type + "/l_img_"+ type + string(distance) + ".png";
+    imgLeft = BasePath + type + "/r_img_" + type + string(distance) + ".png";
 
     lImage = imread(imgLeft);
     rImage = imread(imgRight);
@@ -59,7 +82,7 @@ function [MSE, D, M, Inds]  = computePlaneError(stereoParams, distance, type)
 
     frameLeftGray  = rgb2gray(frameLeftRect);
     frameRightGray = rgb2gray(frameRightRect);
-
+    
     disparityMapReg = disparitySGM(frameLeftGray, frameRightGray);          %disparityBM   disparitySGM
    
 
@@ -76,7 +99,7 @@ function [MSE, D, M, Inds]  = computePlaneError(stereoParams, distance, type)
     [MSE, D] = findMSE(ptCloud,  ref_model);
 %     MSE = 0;
 %     D  = 0;
-    M = mean(ptCloud.Location(:,3));
+    M = mean(ptCloud.Location(:,3))*Scale;
     
     if (SHOW)    
         disp(type+"ERROR: ")
@@ -105,9 +128,9 @@ function [MSE, D] = findMSE(pt_cloud, plane_model)
     for elm = 1:pt_cloud.Count
         pnt = pt_cloud.Location(elm,:);
         
-        planePoint = [0, 0, -plane_model.Parameters(4)];  % plane center
+        planePoint = [0, 0, plane_model.Parameters(4)];  % plane center
         PQ = pnt - planePoint;
-        error = dot(PQ, plane_model.Normal)*Scale;     % difference [meters]
+        error = dot(PQ, plane_model.Normal)*Scale;     % difference [meters] 
 
         error_sum = error_sum + error;
         squaredError_sum = squaredError_sum + error^2;
@@ -176,4 +199,44 @@ set(axes1,'FontSize',14,'XGrid','on','YGrid','on');
 legend1 = legend(axes1,'show');
 set(legend1,...
     'Position',[0.172415836709068 0.839227796053986 0.262158950099176 0.0602310215285902]);
+end
+
+function createfigure2(X1, YMatrix1)
+%CREATEFIGURE(X1, YMatrix1)
+%  X1:  vector of x data
+%  YMATRIX1:  matrix of y data
+
+%  Auto-generated by MATLAB on 29-Mar-2022 00:21:43
+
+% Create figure
+figure1 = figure;
+
+% Create axes
+axes1 = axes('Parent',figure1);
+hold(axes1,'on');
+
+% Create multiple lines using matrix input to plot
+plot1 = plot(X1,YMatrix1,'LineWidth',2,'Parent',axes1);
+set(plot1(1),'DisplayName','REG');
+set(plot1(2),'DisplayName','ATAN','Marker','o','LineStyle','--');
+set(plot1(3),'DisplayName','MEI','Marker','square','LineStyle',':');
+set(plot1(4),'DisplayName','SCARA','Marker','diamond','LineStyle','-.');
+set(plot1(5),'DisplayName','KB','LineStyle','--');
+
+% Create ylabel
+ylabel('MSE, m');
+
+% Create xlabel
+xlabel('Distance, m');
+
+% Create title
+title('Models');
+
+box(axes1,'on');
+% Set the remaining axes properties
+set(axes1,'XGrid','on','YGrid','on');
+% Create legend
+legend1 = legend(axes1,'show');
+set(legend1,...
+    'Position',[0.784930504754938 0.164294954721864 0.099000243842965 0.202242345838725]);
 end
