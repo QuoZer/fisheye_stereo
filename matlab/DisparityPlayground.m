@@ -1,5 +1,5 @@
 close all;
-global SHOW BasePath Scale Model Models;
+global SHOW BasePath Scale RECALCULATE Models;
 
 RECALCULATE = true;
 SHOW = false;
@@ -10,9 +10,7 @@ distances = [1 2 3 4 5 6 7 8 9 10]; % 0.5m: 4 5 6 7.5 9 10 11 12 12.5 13 14 15  
 % MEI0.1: 1 2 3 4 5 6 7 8
 % ALL 1 2 3 4 5 6 7 8 9 10
 
-% diffImageAll(Models, 5)
-computeAllModels(Models, stereoParams01m540p, distances, RECALCULATE);
-
+computeMeanMSA(BasePath,1, distances, stereoParams01m540p )
 
 %%%%%% FUNCTIONS %%%%%%
 
@@ -41,27 +39,70 @@ function diffImageAll(modelDict, distance )
     end
 end
 
-function computeAllModels(modelDict, stereoParams, distances, recalculateFlag)
+function computeMeanMSA(dataset_path, num_of_folders, distances, stereoparams)
+    global RECALCULATE;
+    global Models;
+    global  BasePath;
+    global MSES_SUM
+    global COUNT_SUM;
+    global DISP_SUM;
+    
+    % EXPORT THEM
+    if (RECALCULATE)
+        MSES_SUM = zeros(size(distances, 2), size(Models, 2));
+        COUNT_SUM = zeros(size(distances, 2), size(Models, 2));
+        DISP_SUM = zeros(size(distances, 2), size(Models, 2));
+        for ind = 1:num_of_folders
+            BasePath = "D:\Work\Coding\Repos\fisheye_stereo\data\" + string(ind) + "_Compar0.1m\";
+            [mses, counts, disps] = computeAllModels(Models, stereoparams, distances, RECALCULATE);
+            MSES_SUM = MSES_SUM + mses
+            DISP_SUM = DISP_SUM + disps
+            COUNT_SUM = COUNT_SUM + counts
+
+        end
+        COUNT_SUM = COUNT_SUM/num_of_folders;
+        MSES_SUM = MSES_SUM/num_of_folders;
+    end
+    
+    createfigure(distances, MSES_SUM);
+    createfigure(distances, COUNT_SUM);
+    MseAndDisp(distances, MSES_SUM, DISP_SUM);
+%     figure;
+%     hold on;
+%     % Create multiple lines using matrix input to plot
+%     for ind = 1:size(Models, 2)
+%         errorbar(distances, MSES_SUM(:,ind), DISP_SUM(:,ind))
+%     end
+%     hold off;
+end
+
+function [MSE_DATA, POINT_COUNT, DISP_DATA] = computeAllModels(modelDict, stereoParams, distances, recalculateFlag)
     if (recalculateFlag)
         fyData = []; %zeros(distances.size(), 
-        GIGADATA = [];
+        MSE_DATA = [];
         POINT_COUNT = [];
+        DISP_DATA = [];
+        
         for cur_model = modelDict
             disp(cur_model)
-            [fyData, counts] = computePlaneErrorDistances(distances, stereoParams, cur_model)
+            [fyData, counts, disps, means] = computePlaneErrorDistances(distances, stereoParams, cur_model);
             disp("Model ready")
-            GIGADATA = [GIGADATA fyData.'] 
-            POINT_COUNT = [POINT_COUNT counts.']
+            MSE_DATA = [MSE_DATA fyData.'] ;
+            POINT_COUNT = [POINT_COUNT counts.'];
+            DISP_DATA = [DISP_DATA disps.']
         end
     end
     
-    createfigure(distances, POINT_COUNT);
-    createfigure(distances, GIGADATA);
+%     createfigure(distances, POINT_COUNT);
+%     createfigure(distances, MSE_DATA);
 end
 
-function [mses, counts] = computePlaneErrorDistances(distances, stereoParams, modelName)
+function [mses, counts, disps, means] = computePlaneErrorDistances(distances, stereoParams, modelName)
     mses = zeros(size(distances), 'double');    
     counts = zeros(size(distances), 'double'); 
+    disps = zeros(size(distances), 'double');    
+    means = zeros(size(distances), 'double');
+    
     order = int16(1);
     for dst = distances
         %%%     FISHEYE        %%%
@@ -69,6 +110,9 @@ function [mses, counts] = computePlaneErrorDistances(distances, stereoParams, mo
 %         fy_count = [fy_count count];
         mses(int16(order)) =  fy_e;
         counts(int16(order)) = count;
+        disps(int16(order)) =fy_disp;
+        means(int16(order)) =fy_mean;
+        
         disp("Distance " + dst + " ready")
         order = order +1;
     end
@@ -81,9 +125,9 @@ function [MSE, D, M, Inds]  = computePlaneError(stereoParams, distance, type)
     %base_path = BasePath + string(distance) + "m\";  % compar0.3m
 
     targetDistance = distance;
-%     target_roi = [-0.4 0.6 -0.6 0.46 0.90*targetDistance/Scale 1.1*targetDistance/Scale];       % plane is a little shifted
-    k = distance / 0.7;
-    target_roi = [-0.4*k 0.6*k -0.6*k 0.46*k 0.50*targetDistance/Scale 1.5*targetDistance/Scale];
+    target_roi = [-0.4 0.6 -0.6 0.46 0.90*targetDistance/Scale 1.1*targetDistance/Scale];       % plane is a little shifted
+%     k = distance / 0.7;
+%     target_roi = [-0.5*k 0.5*k -0.5*k 0.5*k 0.9*targetDistance/Scale 1.1*targetDistance/Scale];
 
     targetParamsVector = [0, 0, 1, -targetDistance/Scale];   % normal + distance
     ref_model = planeModel(targetParamsVector);
@@ -147,7 +191,7 @@ function [MSE, D] = findMSE(pt_cloud, plane_model)
     global Scale;
     error_sum = 0.0;
     squaredError_sum = 0.0;
-    ortho_method = false;
+    ortho_method = true;
 %    figure;
 %     Animated_Plot = animatedline;
     z_dst = -plane_model.Parameters(4);
@@ -177,9 +221,8 @@ function [MSE, D] = findMSE(pt_cloud, plane_model)
         
     end
     
-    MSE = sqrt(squaredError_sum/pt_cloud.Count);
     D = squaredError_sum/pt_cloud.Count;
-    
+    MSE = sqrt(D);
 end
 
 function createfigure(X1, YMatrix1)
@@ -222,4 +265,50 @@ legend1 = legend(axes1,'show');
 set(legend1,...
     'Position',[0.776501766784452 0.145977011494253 0.0990065978549978 0.178347160479719]);
 
+end
+
+function MseAndDisp(XMatrix1, YMatrix1, DMatrix1)
+%CREATEFIGURE(XMatrix1, YMatrix1, DMatrix1)
+%  XMATRIX1:  errorbar x matrix data
+%  YMATRIX1:  errorbar y matrix data
+%  DMATRIX1:  errorbar delta matrix data
+
+%  Auto-generated by MATLAB on 22-Apr-2022 01:29:06
+
+% Create figure
+figure1 = figure;
+
+% Create axes
+axes1 = axes('Parent',figure1);
+hold(axes1,'on');
+
+% Create multiple error bars using matrix input to errorbar
+errorbar1 = errorbar(XMatrix1,YMatrix1(:,1),DMatrix1(:,1),'LineWidth',2);
+errorbar2 = errorbar(XMatrix1,YMatrix1(:,2),DMatrix1(:,2),'LineWidth',2);
+errorbar3 = errorbar(XMatrix1,YMatrix1(:,3),DMatrix1(:,3),'LineWidth',2);
+errorbar4 = errorbar(XMatrix1,YMatrix1(:,4),DMatrix1(:,4),'LineWidth',2);
+errorbar5 = errorbar(XMatrix1,YMatrix1(:,5),DMatrix1(:,5),'LineWidth',2);
+errorbar6 = errorbar(XMatrix1,YMatrix1(:,6),DMatrix1(:,6),'LineWidth',2);
+set(errorbar1,'DisplayName','KB');
+set(errorbar2,'DisplayName','KB','LineStyle','-.');
+set(errorbar3,'DisplayName','SCARA','Marker','diamond','LineStyle','-.');
+set(errorbar4,'DisplayName','MEI','Marker','square','LineStyle',':');
+set(errorbar5,'DisplayName','ATAN','Marker','o','LineStyle','--');
+set(errorbar6,'DisplayName','REG','Marker','o','LineStyle','--');
+
+% Create ylabel
+ylabel('СКО, м');
+
+% Create xlabel
+xlabel('Расстояние, м');
+
+% Create title
+title('Mean MSE&D ');
+
+% Uncomment the following line to preserve the X-limits of the axes
+% xlim(axes1,[0.84938193320436 10.1698459049717]);
+% Uncomment the following line to preserve the Y-limits of the axes
+% ylim(axes1,[-0.0970957959651191 1.94176474770099]);
+% Set the remaining axes properties
+set(axes1,'LineStyleOrder',{'- +'},'XGrid','on','YGrid','on');
 end
