@@ -3,7 +3,7 @@ global SHOW BasePath Scale RECALCULATE Models;
 
 RECALCULATE = true;
 SHOW = false;
-BasePath = "D:\Work\Coding\Repos\fisheye_stereo\data\1_Compar0.1m\"; %+ Model + "\";  %0.1m\
+BasePath = "D:\Work\Coding\Repos\fisheye_stereo\data\540p[ALL RIGHT]\1_Compar0.1m\"; %+ Model + "\";  %0.1m\
 Scale = 10; 
 Models =["REG" "ATAN" "MEI" "SCARA" "KB" "REAL_ATAN"]
 distances = [1 2 3 4 5 6 7 8 9 10]; % 0.5m: 4 5 6 7.5 9 10 11 12 12.5 13 14 15  //  0.3m: 1 2 4 5 6 7.5 10 // 0.05m: 1 2 3 4 5 6 8 10 12
@@ -11,6 +11,7 @@ distances = [1 2 3 4 5 6 7 8 9 10]; % 0.5m: 4 5 6 7.5 9 10 11 12 12.5 13 14 15  
 % ALL 1 2 3 4 5 6 7 8 9 10
 
 computeMeanMSA(BasePath,1, distances, stereoParams01m540p )
+% diffImageAll(Models, 7);
 
 %%%%%% FUNCTIONS %%%%%%
 
@@ -27,15 +28,15 @@ function diffImageAll(modelDict, distance )
         lImage = rgb2gray(lImage);
         diffImage = lImage - sample_img;
         
-%         pout_imadjust = imadjust(diffImage);
+        pout_imadjust = imadjust(diffImage, [0.1 0.3]);
 %         pout_histeq = histeq(diffImage);
-        pout_adapthisteq = adapthisteq(diffImage);
+%         pout_adapthisteq = adapthisteq(diffImage);
         
 %         montage({diffImage,pout_imadjust,pout_histeq,pout_adapthisteq},"Size",[1 4])
 %         title("Original Image and Enhanced Images using imadjust, histeq, and adapthisteq")
         
         figure('Name', 'Diff Image '+type);
-        imshow(pout_adapthisteq)
+        imshow(pout_imadjust)
     end
 end
 
@@ -45,28 +46,37 @@ function computeMeanMSA(dataset_path, num_of_folders, distances, stereoparams)
     global  BasePath;
     global MSES_SUM
     global COUNT_SUM;
+    global MEAN_SUM;
     global DISP_SUM;
+    global ALIGN_SUM;
     
     % EXPORT THEM
     if (RECALCULATE)
-        MSES_SUM = zeros(size(distances, 2), size(Models, 2));
+        MSES_SUM  = zeros(size(distances, 2), size(Models, 2));
         COUNT_SUM = zeros(size(distances, 2), size(Models, 2));
-        DISP_SUM = zeros(size(distances, 2), size(Models, 2));
+        DISP_SUM  = zeros(size(distances, 2), size(Models, 2));
+        MEAN_SUM  = zeros(size(distances, 2), size(Models, 2));
+        ALIGN_SUM = zeros(size(distances, 2), size(Models, 2));
         for ind = 1:num_of_folders
-            BasePath = "D:\Work\Coding\Repos\fisheye_stereo\data\" + string(ind) + "_Compar0.1m\";
-            [mses, counts, disps] = computeAllModels(Models, stereoparams, distances, RECALCULATE);
-            MSES_SUM = MSES_SUM + mses
-            DISP_SUM = DISP_SUM + disps
-            COUNT_SUM = COUNT_SUM + counts
+            BasePath = "D:\Work\Coding\Repos\fisheye_stereo\data\540p[ALL RIGHT]\" + string(ind) + "_Compar0.1m\";  %540p[ALL RIGHT]\
+            [mses, counts, disps, means, align] = computeAllModels(Models, stereoparams, distances, RECALCULATE);
+            MSES_SUM = MSES_SUM + mses;
+            DISP_SUM = DISP_SUM + disps;
+            COUNT_SUM = COUNT_SUM + counts;
+            MEAN_SUM = MEAN_SUM + means;
+            ALIGN_SUM = ALIGN_SUM + align;
 
         end
         COUNT_SUM = COUNT_SUM/num_of_folders;
         MSES_SUM = MSES_SUM/num_of_folders;
+        COUNT_SUM = COUNT_SUM/num_of_folders;
+        MEAN_SUM = MEAN_SUM/num_of_folders;
+        ALIGN_SUM = ALIGN_SUM/num_of_folders;
     end
     
     createfigure(distances, MSES_SUM);
-    createfigure(distances, COUNT_SUM);
-    MseAndDisp(distances, MSES_SUM, DISP_SUM);
+    createfigure(distances, ALIGN_SUM);
+    MseAndDisp(distances, MEAN_SUM, DISP_SUM);
 %     figure;
 %     hold on;
 %     % Create multiple lines using matrix input to plot
@@ -76,20 +86,24 @@ function computeMeanMSA(dataset_path, num_of_folders, distances, stereoparams)
 %     hold off;
 end
 
-function [MSE_DATA, POINT_COUNT, DISP_DATA] = computeAllModels(modelDict, stereoParams, distances, recalculateFlag)
+function [MSE_DATA, POINT_COUNT, DISP_DATA, MEAN_DATA, ALIGN_DATA] = computeAllModels(modelDict, stereoParams, distances, recalculateFlag)
     if (recalculateFlag)
         fyData = []; %zeros(distances.size(), 
         MSE_DATA = [];
         POINT_COUNT = [];
         DISP_DATA = [];
+        MEAN_DATA = [];
+        ALIGN_DATA = [];
         
         for cur_model = modelDict
             disp(cur_model)
-            [fyData, counts, disps, means] = computePlaneErrorDistances(distances, stereoParams, cur_model);
+            [fyData, counts, disps, means, misalign] = computePlaneErrorDistances(distances, stereoParams, cur_model);
             disp("Model ready")
             MSE_DATA = [MSE_DATA fyData.'] ;
             POINT_COUNT = [POINT_COUNT counts.'];
-            DISP_DATA = [DISP_DATA disps.']
+            DISP_DATA = [DISP_DATA disps.'];
+            MEAN_DATA = [MEAN_DATA means.'];
+            ALIGN_DATA = [ALIGN_DATA misalign.'];
         end
     end
     
@@ -97,47 +111,49 @@ function [MSE_DATA, POINT_COUNT, DISP_DATA] = computeAllModels(modelDict, stereo
 %     createfigure(distances, MSE_DATA);
 end
 
-function [mses, counts, disps, means] = computePlaneErrorDistances(distances, stereoParams, modelName)
+function [mses, counts, disps, means, misalignment] = computePlaneErrorDistances(distances, stereoParams, modelName)
     mses = zeros(size(distances), 'double');    
     counts = zeros(size(distances), 'double'); 
     disps = zeros(size(distances), 'double');    
     means = zeros(size(distances), 'double');
+    misalignment = zeros(size(distances), 'double');
     
     order = int16(1);
     for dst = distances
         %%%     FISHEYE        %%%
-        [fy_e, fy_disp, fy_mean, count] = computePlaneError(stereoParams, dst, modelName);
+        [fy_e, fy_disp, fy_mean, count, misalign] = computePlaneError(stereoParams, dst, modelName);
 %         fy_count = [fy_count count];
         mses(int16(order)) =  fy_e;
         counts(int16(order)) = count;
         disps(int16(order)) =fy_disp;
         means(int16(order)) =fy_mean;
+        misalignment(int16(order)) = misalign;
         
         disp("Distance " + dst + " ready")
         order = order +1;
     end
 end
 
-function [MSE, D, M, Inds]  = computePlaneError(stereoParams, distance, type)
+function [MSE, D, M, Inds, misalign]  = computePlaneError(stereoParams, distance, type)
     global  BasePath;
     global SHOW;
     global Scale;
     %base_path = BasePath + string(distance) + "m\";  % compar0.3m
 
     targetDistance = distance;
-    target_roi = [-0.4 0.6 -0.6 0.46 0.90*targetDistance/Scale 1.1*targetDistance/Scale];       % plane is a little shifted
-%     k = distance / 0.7;
-%     target_roi = [-0.5*k 0.5*k -0.5*k 0.5*k 0.9*targetDistance/Scale 1.1*targetDistance/Scale];
+%     target_roi = [-0.4 0.6 -0.6 0.46 0.90*targetDistance/Scale 1.1*targetDistance/Scale];       % plane is a little shifted
+    k = distance / 0.7;
+    target_roi = [-0.5*k 0.5*k -0.5*k 0.5*k 0.85*targetDistance/Scale 1.15*targetDistance/Scale];
 
     targetParamsVector = [0, 0, 1, -targetDistance/Scale];   % normal + distance
     ref_model = planeModel(targetParamsVector);
 
     imgLeft = BasePath + type + "/l_img_"+ type + string(distance-1) + ".png";
     imgRight = BasePath + type + "/r_img_" + type + string(distance-1) + ".png";
-%     if (type~="REG")          % in older datasets L/R were mistaken                           yikes
-%         imgRight = BasePath + type + "/l_img_"+ type + string(distance-1) + ".png";
-%         imgLeft = BasePath + type + "/r_img_" + type + string(distance-1) + ".png";
-%     end
+    if (type~="REG")          % in older datasets L/R were mistaken                           yikes
+        imgRight = BasePath + type + "/l_img_"+ type + string(distance-1) + ".png";
+        imgLeft = BasePath + type + "/r_img_" + type + string(distance-1) + ".png";
+    end
 
     lImage = imread(imgLeft);
     rImage = imread(imgRight);
@@ -151,7 +167,7 @@ function [MSE, D, M, Inds]  = computePlaneError(stereoParams, distance, type)
     frameLeftGray  = rgb2gray(frameLeftRect);
     frameRightGray = rgb2gray(frameRightRect);
     
-    disparityMapReg = disparitySGM(frameLeftGray, frameRightGray);          %disparityBM   disparitySGM
+    disparityMapReg = disparityBM(frameLeftGray, frameRightGray);          %disparityBM   disparitySGM
    
 
     points3Dreg = reconstructScene(disparityMapReg, stereoParams);
@@ -165,10 +181,11 @@ function [MSE, D, M, Inds]  = computePlaneError(stereoParams, distance, type)
     ptCloud = select(ptCloud, indicies);
     Inds = ptCloud.Count;
     [MSE, D] = findMSE(ptCloud,  ref_model);
+    misalign = computeAlignment(ptCloud, distance);
+    
 %     MSE = 0;
 %     D  = 0;
     M = mean(ptCloud.Location(:,3))*Scale;
-    
     if (SHOW)    
         disp(type+"ERROR: ")
         disp(MSE)
@@ -187,6 +204,18 @@ function [MSE, D, M, Inds]  = computePlaneError(stereoParams, distance, type)
     end
 end
 
+function misalignment = computeAlignment(pt_cloud, distance)
+    maxDistance = 0.05*distance;
+    referenceVector = [0,0,1];
+    maxAngularDistance = 15;
+    
+    [model2,inlierIndices,outlierIndices] = pcfitplane(pt_cloud,...
+            maxDistance,referenceVector,maxAngularDistance); 
+    second_vector = model2.Normal;
+    
+    misalignment = 1 - dot(second_vector, referenceVector);
+end
+
 function [MSE, D] = findMSE(pt_cloud, plane_model)
     global Scale;
     error_sum = 0.0;
@@ -201,6 +230,7 @@ function [MSE, D] = findMSE(pt_cloud, plane_model)
     for elm = 1:pt_cloud.Count
         if (ortho_method)
             pnt = pt_cloud.Location(elm,:);
+            
             planePoint = [0, 0, z_dst];  % plane center
             PQ = pnt - planePoint;
             error = dot(PQ, plane_model.Normal)*Scale;     % difference [meters] 
