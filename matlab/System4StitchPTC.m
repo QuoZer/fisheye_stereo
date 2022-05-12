@@ -25,7 +25,7 @@ front_right_left = pcmerge(front_right, left, mergeSize);
 ptCloudScene = pcmerge(front_right_left, back, mergeSize);
 
 % ROI
-target_roi = [-4 4 -4 4 -4 4];
+target_roi = [-2 2 -0.2 0.2 -2 2];
 indicies = findPointsInROI(ptCloudScene, target_roi);
 ptCloudBound = select(ptCloudScene, indicies);
 

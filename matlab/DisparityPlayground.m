@@ -3,9 +3,9 @@ global SHOW BasePath Scale RECALCULATE Models;
 
 RECALCULATE = true;
 SHOW = false;
-BasePath = "D:\Work\Coding\Repos\fisheye_stereo\data\540p[ALL RIGHT]\1_Compar0.1m\"; %+ Model + "\";  %0.1m\
+BasePath = "D:\Work\Coding\Repos\fisheye_stereo\data\540p[ALLRIGHT]\3_Compar0.1m\"; %+ Model + "\";  %0.1m\
 Scale = 10; 
-Models =["REG" "ATAN" "MEI" "SCARA" "KB" "REAL_ATAN"]
+Models =["REG" "ATAN" "MEI" "SCARA" "KB" "REAL_ATAN" "DS"] % 
 distances = [1 2 3 4 5 6 7 8 9 10]; % 0.5m: 4 5 6 7.5 9 10 11 12 12.5 13 14 15  //  0.3m: 1 2 4 5 6 7.5 10 // 0.05m: 1 2 3 4 5 6 8 10 12
 % MEI0.1: 1 2 3 4 5 6 7 8
 % ALL 1 2 3 4 5 6 7 8 9 10
@@ -58,7 +58,7 @@ function computeMeanMSA(dataset_path, num_of_folders, distances, stereoparams)
         MEAN_SUM  = zeros(size(distances, 2), size(Models, 2));
         ALIGN_SUM = zeros(size(distances, 2), size(Models, 2));
         for ind = 1:num_of_folders
-            BasePath = "D:\Work\Coding\Repos\fisheye_stereo\data\540p[ALL RIGHT]\" + string(ind) + "_Compar0.1m\";  %540p[ALL RIGHT]\
+            BasePath = "D:\Work\Coding\Repos\fisheye_stereo\data\540p[ALLRIGHT]\" + string(ind) + "_Compar0.1m\";  %540p[ALL RIGHT]\
             [mses, counts, disps, means, align] = computeAllModels(Models, stereoparams, distances, RECALCULATE);
             MSES_SUM = MSES_SUM + mses;
             DISP_SUM = DISP_SUM + disps;
@@ -75,7 +75,7 @@ function computeMeanMSA(dataset_path, num_of_folders, distances, stereoparams)
     end
     
     createfigure(distances, MSES_SUM);
-    createfigure(distances, ALIGN_SUM);
+    createfigure(distances, COUNT_SUM);
     MseAndDisp(distances, MEAN_SUM, DISP_SUM);
 %     figure;
 %     hold on;
@@ -141,19 +141,19 @@ function [MSE, D, M, Inds, misalign]  = computePlaneError(stereoParams, distance
     %base_path = BasePath + string(distance) + "m\";  % compar0.3m
 
     targetDistance = distance;
-%     target_roi = [-0.4 0.6 -0.6 0.46 0.90*targetDistance/Scale 1.1*targetDistance/Scale];       % plane is a little shifted
-    k = distance / 0.7;
-    target_roi = [-0.5*k 0.5*k -0.5*k 0.5*k 0.85*targetDistance/Scale 1.15*targetDistance/Scale];
+    target_roi = [-0.4 0.6 -0.6 0.46 0.90*targetDistance/Scale 1.10*targetDistance/Scale];       % plane is a little shifted
+%     k = distance / 0.7;
+%     target_roi = [-0.5*k 0.5*k -0.5*k 0.5*k 0.85*targetDistance/Scale 1.15*targetDistance/Scale];
 
     targetParamsVector = [0, 0, 1, -targetDistance/Scale];   % normal + distance
     ref_model = planeModel(targetParamsVector);
 
     imgLeft = BasePath + type + "/l_img_"+ type + string(distance-1) + ".png";
     imgRight = BasePath + type + "/r_img_" + type + string(distance-1) + ".png";
-    if (type~="REG")          % in older datasets L/R were mistaken                           yikes
-        imgRight = BasePath + type + "/l_img_"+ type + string(distance-1) + ".png";
-        imgLeft = BasePath + type + "/r_img_" + type + string(distance-1) + ".png";
-    end
+%     if (type=="DS")          % in older datasets L/R were mistaken                           yikes
+%         imgRight = BasePath + type + "/l_img_"+ type + string(distance-1) + ".png";
+%         imgLeft = BasePath + type + "/r_img_" + type + string(distance-1) + ".png";
+%     end
 
     lImage = imread(imgLeft);
     rImage = imread(imgRight);
@@ -167,7 +167,7 @@ function [MSE, D, M, Inds, misalign]  = computePlaneError(stereoParams, distance
     frameLeftGray  = rgb2gray(frameLeftRect);
     frameRightGray = rgb2gray(frameRightRect);
     
-    disparityMapReg = disparityBM(frameLeftGray, frameRightGray);          %disparityBM   disparitySGM
+    disparityMapReg = disparitySGM(frameLeftGray, frameRightGray);          %disparityBM   disparitySGM
    
 
     points3Dreg = reconstructScene(disparityMapReg, stereoParams);
@@ -220,7 +220,7 @@ function [MSE, D] = findMSE(pt_cloud, plane_model)
     global Scale;
     error_sum = 0.0;
     squaredError_sum = 0.0;
-    ortho_method = true;
+    ortho_method = false;
 %    figure;
 %     Animated_Plot = animatedline;
     z_dst = -plane_model.Parameters(4);
@@ -277,6 +277,7 @@ set(plot1(3),'DisplayName','MEI','Marker','square','LineStyle',':');
 set(plot1(4),'DisplayName','SCARA','Marker','diamond','LineStyle','-.');
 set(plot1(5),'DisplayName','KB','LineStyle','--');
 set(plot1(6),'DisplayName',['REAL',newline,'ATAN'],'LineWidth',3);
+set(plot1(7),'DisplayName','DS','LineWidth',3);
 
 % Create ylabel
 ylabel('MSE, m');
@@ -313,18 +314,21 @@ axes1 = axes('Parent',figure1);
 hold(axes1,'on');
 
 % Create multiple error bars using matrix input to errorbar
+% "REG" "ATAN" "MEI" "SCARA" "KB" "REAL_ATAN" "DS"
 errorbar1 = errorbar(XMatrix1,YMatrix1(:,1),DMatrix1(:,1),'LineWidth',2);
 errorbar2 = errorbar(XMatrix1,YMatrix1(:,2),DMatrix1(:,2),'LineWidth',2);
 errorbar3 = errorbar(XMatrix1,YMatrix1(:,3),DMatrix1(:,3),'LineWidth',2);
 errorbar4 = errorbar(XMatrix1,YMatrix1(:,4),DMatrix1(:,4),'LineWidth',2);
 errorbar5 = errorbar(XMatrix1,YMatrix1(:,5),DMatrix1(:,5),'LineWidth',2);
 errorbar6 = errorbar(XMatrix1,YMatrix1(:,6),DMatrix1(:,6),'LineWidth',2);
-set(errorbar1,'DisplayName','KB');
-set(errorbar2,'DisplayName','KB','LineStyle','-.');
-set(errorbar3,'DisplayName','SCARA','Marker','diamond','LineStyle','-.');
-set(errorbar4,'DisplayName','MEI','Marker','square','LineStyle',':');
-set(errorbar5,'DisplayName','ATAN','Marker','o','LineStyle','--');
-set(errorbar6,'DisplayName','REG','Marker','o','LineStyle','--');
+errorbar7 = errorbar(XMatrix1,YMatrix1(:,7),DMatrix1(:,7),'LineWidth',2);
+set(errorbar1,'DisplayName','REG');
+set(errorbar2,'DisplayName','ATAN','LineStyle','-.');
+set(errorbar3,'DisplayName','MEI','Marker','diamond','LineStyle','-.');
+set(errorbar4,'DisplayName','SCARA','Marker','square','LineStyle',':');
+set(errorbar5,'DisplayName','KB','Marker','o','LineStyle','--');
+set(errorbar6,'DisplayName','REAL_ATAN','Marker','o','LineStyle','--');
+set(errorbar7,'DisplayName','DS','Marker','diamond','LineStyle',':');
 
 % Create ylabel
 ylabel('СКО, м');
@@ -334,6 +338,8 @@ xlabel('Расстояние, м');
 
 % Create title
 title('Mean MSE&D ');
+
+legend1 = legend(axes1,'show');
 
 % Uncomment the following line to preserve the X-limits of the axes
 % xlim(axes1,[0.84938193320436 10.1698459049717]);
