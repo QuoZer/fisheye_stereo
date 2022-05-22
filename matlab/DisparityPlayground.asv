@@ -11,7 +11,7 @@ distances = [1 2 3 4 5 6 ]; % 0.5m: 4 5 6 7.5 9 10 11 12 12.5 13 14 15  //  0.3m
 % MEI0.1: 1 2 3 4 5 6 7 8
 % ALL 1 2 3 4 5 6 7 8 9 
 
-computeMeanMSA(BasePath,3, distances, stereoParamsSCARA )
+computeMeanMSA(BasePath,1, distances, stereoParamsSCARA )
 % diffImageAll(Models, 7);
 
 %%%%%% FUNCTIONS %%%%%%
@@ -57,7 +57,7 @@ function computeMeanMSA(dataset_path, num_of_folders, distances, stereoparams)
         MEAN_SUM  = zeros(size(distances, 2), size(Models, 2));
         ALIGN_SUM = zeros(size(distances, 2), size(Models, 2));
         for ind = 1:num_of_folders
-            BasePath = "D:\Work\Coding\Repos\fisheye_stereo\data\1080p[REAL]\" + string(ind) + "_Compar0.072m\";  %540p[ALL RIGHT]\
+            BasePath = "D:\Work\Coding\Repos\fisheye_stereo\data\1080p[REAL]\" + string(2) + "_Compar0.072m\";  %540p[ALL RIGHT]\
             [mses, counts, disps, means, align] = computeAllModels(Models, stereoparams, distances, RECALCULATE);
             MSES_SUM = MSES_SUM + mses;
             DISP_SUM = DISP_SUM + disps;
@@ -133,7 +133,6 @@ function [mses, counts, disps, means, misalignment] = computePlaneErrorDistances
 end
 
 function [MSE, D, M, Inds, misalign]  = computePlaneError(stereoParams, distance, type)
-    close all;    
     global  BasePath;
     global SHOW;
     global Scale;
@@ -163,7 +162,7 @@ function [MSE, D, M, Inds, misalign]  = computePlaneError(stereoParams, distance
     frameRightGray = rgb2gray(frameRightRect);
     
     disparityMapReg = disparitySGM(frameLeftGray, frameRightGray);          %disparityBM   disparitySGM
-   %% PTC processing
+   %% PTC 
     points3Dreg = reconstructScene(disparityMapReg, stereoParams);
     points3Dreg = points3Dreg ./ 1000;
     ptCloud = pointCloud(points3Dreg, 'Color', frameLeftRect);
@@ -178,16 +177,19 @@ function [MSE, D, M, Inds, misalign]  = computePlaneError(stereoParams, distance
     if (percent_to_stay > 1)
         percent_to_stay = 1;
     end
-    ptCloud = pcdownsample(ptCloud, 'random', percent_to_stay);
-    pcshow(ptCloud);
+        ptCloud = pcdownsample(ptCloud, 'random', percent_to_stay);
     [new_vec, TF] = rmoutliers(ptCloud.Location(:,3));
     ptCloud = select(ptCloud, ~TF);
+    
+    M = mean(ptCloud.Location(:,3))*Scale;
     pcshow(ptCloud);
     Inds = ptCloud.Count;
-    %% Stats
-    [MSE, D, M] = findMSE_D_M(ptCloud,  ref_model);
+    [MSE, D] = findMSE(ptCloud,  ref_model);
     misalign = computeAlignment(ptCloud, distance);
-   %% Display
+    
+%     MSE = 0;
+%     D  = 0;
+    
     if (SHOW)    
         disp(type+"ERROR: ")
         disp(MSE)
@@ -204,7 +206,6 @@ function [MSE, D, M, Inds, misalign]  = computePlaneError(stereoParams, distance
 %         colormap jet
 %         colorbar
     end
-    %%
 end
 
 function misalignment = computeAlignment(pt_cloud, distance)
@@ -219,7 +220,7 @@ function misalignment = computeAlignment(pt_cloud, distance)
     misalignment = 1 - dot(second_vector, referenceVector);
 end
 
-function [MSE, D, M] = findMSE_D_M(pt_cloud, plane_model)
+function [MSE, D] = findMSE(pt_cloud, plane_model)
     global Scale;
     error_sum = 0.0;
     squaredError_sum = 0.0;
@@ -229,6 +230,8 @@ function [MSE, D, M] = findMSE_D_M(pt_cloud, plane_model)
     z_dst = -plane_model.Parameters(4);
     size = (10/Scale * z_dst / 0.7)/2;            % half side length 
     edge_tan = size / z_dst;
+    
+
 
     for elm = 1:pt_cloud.Count
         pnt = pt_cloud.Location(elm,:);
@@ -258,8 +261,8 @@ function [MSE, D, M] = findMSE_D_M(pt_cloud, plane_model)
 
         
     end
-    M = mean(pt_cloud.Location(:,3))*Scale;
-    D = [squaredError_sum/pt_cloud.Count; M-smallest_D; biggest_D-M];
+    
+    D = [squaredError_sum/pt_cloud.Count; smallest_D; biggest_D];
     MSE = sqrt(D(1));
 end
 
